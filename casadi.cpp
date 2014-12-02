@@ -162,12 +162,49 @@ complex<double> bf3(vector<vector<complex<double>>>& f, int k, int i, int j, int
     return bi;
 }
 
-  
+complex<double> bf4(vector<vector<complex<double>>>& f, int k, int i, int j, int a, int b, int n, int m, int p, int q) {
+    complex<double> bi = 0;
+    if (a == k && j == k) {
+        if (b != i) {
+            if (p == m-1 && m < nmax) {
+                bi += m * sqrt(1.0 * (n+1) * q * (m+1)) * conj(f[i][n+1]) * conj(f[b][q-1]) * conj(f[k][m]) * f[i][n] * f[b][q] * f[k][m+1];
+            }
+            if (p == m-2) {
+                bi -= (m-1) * sqrt(1.0 * (n+1) * q * m) * conj(f[i][n+1]) * conj(f[b][q-1]) * conj(f[k][m-1]) * f[i][n] * f[b][q] * f[k][m];
+            }
+            if (p == m) {
+                bi -= (m+1) * sqrt(1.0 * (n+1) * q * m) * conj(f[i][n+1]) * conj(f[b][q-1]) * conj(f[k][m-1]) * f[i][n] * f[b][q] * f[k][m];
+            }
+            if (p == m-1 && m >= 2) {
+                bi += m * sqrt(1.0 * (n+1) * q * (m-1)) * conj(f[i][n+1]) * conj(f[b][q-1]) * conj(f[k][m-2]) * f[i][n] * f[b][q] * f[k][m-1];
+            }
+        }
+        else if (n == q-1) {
+            if (p == m-1 && m < nmax) {
+                bi += (n+1) * m * sqrt(1.0 * (m+1)) * conj(f[i][n+1]) * conj(f[k][m]) * f[i][n+1] * f[k][m+1];
+            }
+            if (p == m-2) {
+                bi -= (n+1) * (m-1) * sqrt(1.0 * m) * conj(f[i][n+1]) * conj(f[k][m-1]) * f[i][n+1] * f[k][m];
+            }
+            if (p == m) {
+                bi -= (n+1) * (m+1) * sqrt(1.0 * m) * conj(f[i][n+1]) * conj(f[k][m-1]) * f[i][n+1] * f[k][m];
+            }
+            if (p == m-1 && m >= 2) {
+                bi += (n+1) * m * sqrt(1.0 * (m-1)) * conj(f[i][n+1]) * conj(f[k][m-2]) * f[i][n+1] * f[k][m-1];
+            }
+        }
+    }
+    return bi;
+}
+
+
+
 complex<double> bf(vector<vector<complex<double>>>& f, int k, int i, int j, int a, int b, int n, int m, int p, int q) {
     complex<double> bi = 0;
 //    bi += bf1(f, k, i, j, a, b, n, m, p, q);
 //    bi += bf2(f, k, i, j, a, b, n, m, p, q);
-    bi += bf3(f, k, i, j, a, b, n, m, p, q);
+//    bi += bf3(f, k, i, j, a, b, n, m, p, q);
+    bi += bf4(f, k, i, j, a, b, n, m, p, q);
     return bi;
 }
 
