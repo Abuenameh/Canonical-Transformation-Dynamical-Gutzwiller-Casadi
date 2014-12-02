@@ -96,30 +96,30 @@ complex<double> bf2(vector<vector<complex<double>>>& f, int k, int i, int j, int
     complex<double> bi = 0;
     if (b == k && j == k) {
         if (a != i) {
-            if (q == m-1 && m >= 2 && m < nmax) {
+            if (q == m-1 && m < nmax) {
                 bi += sqrt(1.0 * (p+1) * (n+1) * m * (m+1) * q) * conj(f[i][n+1]) * conj(f[a][p+1]) * conj(f[k][m-2]) * f[i][n] * f[a][p] * f[k][m+1];
             }
-            if (q == m+2 && m < nmax-1) {
+            if (q == m+2) {
                 bi -= sqrt(1.0 * (p+1) * (n+1) * m * (m+1) * q) * conj(f[i][n+1]) * conj(f[a][p+1]) * conj(f[k][m-1]) * f[i][n] * f[a][p] * f[k][m+2];
             }
-            if (q == m-2 && m >= 3) {
+            if (q == m-2) {
                 bi -= sqrt(1.0 * (p+1) * (n+1) * (m-1) * m * q) * conj(f[i][n+1]) * conj(f[a][p+1]) * conj(f[k][m-3]) * f[i][n] * f[a][p] * f[k][m];
             }
-            if (q == m+1 && m >= 2 && m < nmax) {
+            if (q == m+1 && m >= 2) {
                 bi += sqrt(1.0 * (p+1) * (n+1) * (m-1) * m * q) * conj(f[i][n+1]) * conj(f[a][p+1]) * conj(f[k][m-2]) * f[i][n] * f[a][p] * f[k][m+1];
             }
         }
         else if (p == n+1) {
-            if (q == m-1 && n < nmax - 1 && m >= 2 && m < nmax) {
+            if (q == m-1 && n < nmax - 1 && m < nmax) {
                 bi += sqrt(1.0 * (n+2) * (n+1) * m * (m+1) * (m-1)) * conj(f[i][n+2]) * conj(f[k][m-2]) * f[i][n] * f[k][m+1];
             }
-            if (q == m+2 && n < nmax - 1 && m < nmax - 1) {
+            if (q == m+2 && n < nmax - 1) {
                 bi -= sqrt(1.0 * (n+2) * (n+1) * m * (m+1) * (m+2)) * conj(f[i][n+2]) * conj(f[k][m-1]) * f[i][n] * f[k][m+2];
             }
-            if (q == m-2 && n < nmax - 1 && m >= 3) {
+            if (q == m-2 && n < nmax - 1) {
                 bi -= sqrt(1.0 * (n+2) * (n+1) * (m-1) * m * (m-2)) * conj(f[i][n+2]) * conj(f[k][m-3]) * f[i][n] * f[k][m];
             }
-            if (q == m+1 && n < nmax - 1 && m >= 2 && m < nmax) {
+            if (q == m+1 && n < nmax - 1 && m >= 2) {
                 bi += sqrt(1.0 * (n+2) * (n+1) * (m-1) * m * (m+1)) * conj(f[i][n+2]) * conj(f[k][m-2]) * f[i][n] * f[k][m+1];
             }
         }
@@ -131,30 +131,30 @@ complex<double> bf3(vector<vector<complex<double>>>& f, int k, int i, int j, int
     complex<double> bi = 0;
     if (i == a && j == k) {
         if (b != k) {
-            if (p == n+1 && n < nmax - 1 && m < nmax) {
+            if (p == n+1 && m < nmax) {
                 bi += sqrt(1.0 * q * (n+1) * (n+2) * m * (m+1)) * conj(f[i][n+2]) * conj(f[b][q-1]) * conj(f[k][m-1]) * f[i][n] * f[b][q] * f[k][m+1];
             }
-            if (p == n+1 && n < nmax - 1 && m >= 2) {
+            if (p == n+1 && m >= 2) {
                 bi -= sqrt(1.0 * q * (n+1) * (n+2) * (m-1) * m) * conj(f[i][n+2]) * conj(f[b][q-1]) * conj(f[k][m-2]) * f[i][n] * f[b][q] * f[k][m];
             }
-            if (p == n-1 && n >= 1 && m < nmax) {
+            if (p == n-1 && m < nmax) {
                 bi -= sqrt(1.0 * q * n * (n+1) * m * (m+1)) * conj(f[i][n+1]) * conj(f[b][q-1]) * conj(f[k][m-1]) * f[i][n-1] * f[b][q] * f[k][m+1];
             }
-            if (p == n-1 && m >= 2 && n >= 1) {
+            if (p == n-1 && m >= 2) {
                 bi += sqrt(1.0 * q * n * (n+1) * (m-1) * m) * conj(f[i][n+1]) * conj(f[b][q-1]) * conj(f[k][m-2]) * f[i][n-1] * f[b][q] * f[k][m];
             }
         }
-        else {
-            if (q == m+2 && p == n+1 && n < nmax - 1 && m < nmax - 1) {
+        else if (p == n+1) {
+            if (q == m+2) {
                 bi += sqrt(1.0 * (n+1) * (n+2) * m * (m+1) * (m+2)) * conj(f[i][n+2]) * conj(f[k][m-1]) * f[i][n] * f[k][m+2];
             }
-            if (q == m+1 && p == n+1 && n < nmax - 1 && m >= 2 && m < nmax) {
+            if (q == m+1 && m >= 2) {
                 bi -= sqrt(1.0 * (n+1) * (n+2) * (m-1) * m * (m+1)) * conj(f[i][n+2]) * conj(f[k][m-2]) * f[i][n] * f[k][m+1];
             }
-            if (q == m+2 && p == n-1 && n >= 1 && m < nmax - 1) {
+            if (q == m+2) {
                 bi -= sqrt(1.0 * n * (n+1) * m * (m+1) * (m+2)) * conj(f[i][n+1]) * conj(f[k][m-1]) * f[i][n-1] * f[k][m+2];
             }
-            if (q == m+1 && p == n-1 && m >= 2 && m < nmax) {
+            if (q == m+1 && m >= 2) {
                 bi += sqrt(1.0 * n * (n+1) * (m-1) * m * (m+1)) * conj(f[i][n+1]) * conj(f[k][m-2]) * f[i][n-1] * f[k][m+1];
             }
         }
@@ -203,24 +203,22 @@ complex<double> bf5(vector<vector<complex<double>>>& f, int k, int i, int j, int
         if (j != a) {
             if (q == n+1) {
                 bi += 2 * (n+1) * sqrt(1.0 * m * (p+1) * (n+1)) * conj(f[j][m-1]) * conj(f[a][p+1]) * conj(f[k][n]) * f[j][m] * f[a][p] * f[k][n+1];
-//                bi += (n+1) * sqrt(1.0 * m * (p+1) * (n+1)) * conj(f[j][m-1]) * conj(f[a][p+1]) * conj(f[k][n]) * f[j][m] * f[a][p] * f[k][n+1];
             }
-            if (q == n && n >= 1) {
+            if (q == n) {
                 bi -= (n+1) * sqrt(1.0 * m * (p+1) * n) * conj(f[j][m-1]) * conj(f[a][p+1]) * conj(f[k][n-1]) * f[j][m] * f[a][p] * f[k][n];
             }
-            if (q == n+2 && n < nmax-1) {
+            if (q == n+2) {
                 bi -= (n+1) * sqrt(1.0 * m * (p+1) * (n+2)) * conj(f[j][m-1]) * conj(f[a][p+1]) * conj(f[k][n+1]) * f[j][m] * f[a][p] * f[k][n+2];
             }
         }
         else if (p == m-1) {
             if (q == n+1) {
                 bi += 2 * (n+1) * m * sqrt(1.0 * (n+1)) * conj(f[j][p+1]) * conj(f[k][n]) * f[j][m] * f[k][n+1];
-//                bi += (n+1) * m * sqrt(1.0 * (n+1)) * conj(f[j][p+1]) * conj(f[k][n]) * f[j][m] * f[k][n+1];
             }
             if (q == n) {
                 bi -= (n+1) * m * sqrt(1.0 * n) * conj(f[j][p+1]) * conj(f[k][n-1]) * f[j][m] * f[k][n];
             }
-            if (q == n+2 && n < nmax-1) {
+            if (q == n+2) {
                 bi -= (n+1) * m * sqrt(1.0 * (n+2)) * conj(f[j][p+1]) * conj(f[k][n+1]) * f[j][m] * f[k][n+2];
             }
         }
@@ -232,25 +230,54 @@ complex<double> bf6(vector<vector<complex<double>>>& f, int k, int i, int j, int
     complex<double> bi = 0;
     if (i == k && j == b) {
         if (i != a) {
-            if (q == m-1 && m >= 2) {
+            if (q == m-1) {
                 bi += (n+1) * sqrt(1.0 * (p+1) * (m-1) * m) * conj(f[j][m-2]) * conj(f[a][p+1]) * f[j][m] * f[a][p] * (conj(f[k][n+1]) * f[k][n+1] - conj(f[k][n]) * f[k][n]);
             }
-            if (q == m+1 && m < nmax) {
+            if (q == m+1) {
                 bi -= (n+1) * sqrt(1.0 * (p+1) * (m+1) * m) * conj(f[j][m-1]) * conj(f[a][p+1]) * f[j][m+1] * f[a][p] * (conj(f[k][n+1]) * f[k][n+1] - conj(f[k][n]) * f[k][n]);
             }
         }
         else {
-            if (p == n+1 && q == m-1 && n < nmax-1 && m >= 2) {
+            if (p == n+1 && q == m-1) {
                 bi += sqrt(1.0 * m * (m-1) * (n+2)) * conj(f[j][m-2]) * conj(f[k][n+2]) * f[j][m] * f[k][n+1];
             }
-            if (p == n+1 && q == m+1 && n < nmax-1 && m < nmax) {
+            if (p == n+1 && q == m+1) {
                 bi -= sqrt(1.0 * m * (m+1) * (n+2)) * conj(f[j][m-1]) * conj(f[k][n+2]) * f[j][m+1] * f[k][n+1];
             }
-            if (p == n && q == m-1 && m >= 2) {
+            if (p == n && q == m-1) {
                 bi -= sqrt(1.0 * m * (m-1) * (n+1)) * conj(f[j][m-2]) * conj(f[k][n+1]) * f[j][m] * f[k][n];
             }
-            if (p == n && q == m+1 && m < nmax) {
+            if (p == n && q == m+1) {
                 bi += sqrt(1.0 * m * (m+1) * (n+1)) * conj(f[j][m-1]) * conj(f[k][n+1]) * f[j][m+1] * f[k][n];
+            }
+        }
+    }
+    return bi;
+}
+
+complex<double> bf7(vector<vector<complex<double>>>& f, int k, int i, int j, int a, int b, int n, int m, int p, int q) {
+    complex<double> bi = 0;
+    if (i == k && i == a) {
+        if (j != b) {
+            if (p == n+1) {
+                bi += (n+1) * sqrt(1.0 * m * q * (p+1)) * conj(f[j][m-1]) * conj(f[b][q-1]) * conj(f[k][n+2]) * f[j][m] * f[b][q] * f[k][n+1];
+            }
+            if (p == n) {
+                bi -= 2 * (n+1) * sqrt(1.0 * m * q * (p+1)) * conj(f[j][m-1]) * conj(f[b][q-1]) * conj(f[k][n+1]) * f[j][m] * f[b][q] * f[k][n];
+            }
+            if (p == n-1) {
+                bi += (n+1) * sqrt(1.0 * m * q * (p+1)) * conj(f[j][m-1]) * conj(f[b][q-1]) * conj(f[k][n]) * f[j][m] * f[b][q] * f[k][n-1];
+            }
+        }
+        else if (m == q-1) {
+            if (p == n+1) {
+                bi += (n+1) * sqrt(1.0 * m * (m+1) * (n+2)) * conj(f[j][m-1]) * conj(f[k][n+2]) * f[j][m+1] * f[k][n+1];
+            }
+            if (p == n) {
+                bi -= 2 * (n+1) * sqrt(1.0 * m * (m+1) * (n+1)) * conj(f[j][m-1]) * conj(f[k][n+1]) * f[j][m+1] * f[k][n];
+            }
+            if (p == n-1) {
+                bi += (n+1) * sqrt(1.0 * m * (m+1) * n) * conj(f[j][m-1]) * conj(f[k][n]) * f[j][m+1] * f[k][n-1];
             }
         }
     }
@@ -265,7 +292,8 @@ complex<double> bf(vector<vector<complex<double>>>& f, int k, int i, int j, int 
 //    bi += bf3(f, k, i, j, a, b, n, m, p, q);
 //    bi += bf4(f, k, i, j, a, b, n, m, p, q);
 //    bi += bf5(f, k, i, j, a, b, n, m, p, q);
-    bi += bf6(f, k, i, j, a, b, n, m, p, q);
+//    bi += bf6(f, k, i, j, a, b, n, m, p, q);
+    bi += bf7(f, k, i, j, a, b, n, m, p, q);
     return bi;
 }
 
