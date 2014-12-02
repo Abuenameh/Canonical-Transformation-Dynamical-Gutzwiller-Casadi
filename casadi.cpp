@@ -21,7 +21,7 @@ SX UW(SX W) {
     return -2 * (g24 * g24) / Delta * (Ng * Ng * W * W) / ((Ng * Ng + W * W) * (Ng * Ng + W * W));
 }
 
-complex<double> dot(vector<complex<double>> v, vector<complex<double>> w) {
+complex<double> dot(vector<complex<double>>& v, vector<complex<double>>& w) {
     complex<double> res = 0;
     for (int i = 0; i < v.size(); i++) {
         res += conj(v[i]) * w[i];
@@ -29,38 +29,71 @@ complex<double> dot(vector<complex<double>> v, vector<complex<double>> w) {
     return res;
 }
 
-complex<double> b(vector<vector<complex<double>>> f, int i) {
+complex<double> b0(vector<vector<complex<double>>>& f, int i) {
     complex<double> bi = 0;
     for (int n = 1; n <= nmax; n++) {
-        bi += sqrt(n) * f[i][n-1] * f[i][n];
+        bi += sqrt(n) * f[i][n - 1] * f[i][n];
     }
     return bi;
 }
 
-complex<double> b1(vector<vector<complex<double>>> f, int i, vector<double> J, double U) {
+complex<double> b1(vector<vector<complex<double>>>& f, int i, vector<double> J, double U) {
     complex<double> bi = 0;
-    
+
     int j1 = mod(i - 1);
     int j2 = mod(i + 1);
-    for (int j = 0; j < L; j++) {
-        for (int n = 0; n < nmax; n++) {
-            for (int m = 1; m <= nmax; m++) {
-                if (n != m-1) {
-                    bi += -J[i] * g(n, m) / eps(U, n, m) * sqrt(n + 1) * conj(f[j2][m-1]) * f[j2][m] * (conj(f[i][n+1])*f[i][n+1] - conj(f[i][n])*f[i][n]);
-                    bi += -J[j1] * g(n, m) / eps(U, n, m) * sqrt(n + 1) * conj(f[j1][m-1]) * f[j1][m] * (conj(f[i][n+1])*f[i][n+1] - conj(f[i][n])*f[i][n]);
-                    
-                    if (m < nmax) {
-                        bi += -J[i] * g(n, m) / eps(U, n, m) * sqrt(m + 1) * conj(f[j2][n+1]) * f[j2][n] * conj(f[i][m-1]) * f[i][m+1];
-                        bi += -J[j1] * g(n, m) / eps(U, n, m) * sqrt(m + 1) * conj(f[j1][n+1]) * f[j1][n] * conj(f[i][m-1]) * f[i][m+1];
-                    }
-                    if (m > 1) {
-                        bi += J[i] * g(n, m) / eps(U, n, m) * sqrt(m - 1) * conj(f[j2][n+1]) * f[j2][n] * conj(f[i][m-2]) * f[i][m];
-                        bi += J[j1] * g(n, m) / eps(U, n, m) * sqrt(m - 1) * conj(f[j1][n+1]) * f[j1][n] * conj(f[i][m-2]) * f[i][m];
-                    }
+    for (int n = 0; n < nmax; n++) {
+        for (int m = 1; m <= nmax; m++) {
+            if (n != m - 1) {
+                bi += -J[i] * g(n, m) / eps(U, n, m) * sqrt(n + 1) * conj(f[j2][m - 1]) * f[j2][m] * (conj(f[i][n + 1]) * f[i][n + 1] - conj(f[i][n]) * f[i][n]);
+                bi += -J[j1] * g(n, m) / eps(U, n, m) * sqrt(n + 1) * conj(f[j1][m - 1]) * f[j1][m] * (conj(f[i][n + 1]) * f[i][n + 1] - conj(f[i][n]) * f[i][n]);
+
+                if (m < nmax) {
+                    bi += -J[i] * g(n, m) / eps(U, n, m) * sqrt(m + 1) * conj(f[j2][n + 1]) * f[j2][n] * conj(f[i][m - 1]) * f[i][m + 1];
+                    bi += -J[j1] * g(n, m) / eps(U, n, m) * sqrt(m + 1) * conj(f[j1][n + 1]) * f[j1][n] * conj(f[i][m - 1]) * f[i][m + 1];
+                }
+                if (m > 1) {
+                    bi += J[i] * g(n, m) / eps(U, n, m) * sqrt(m - 1) * conj(f[j2][n + 1]) * f[j2][n] * conj(f[i][m - 2]) * f[i][m];
+                    bi += J[j1] * g(n, m) / eps(U, n, m) * sqrt(m - 1) * conj(f[j1][n + 1]) * f[j1][n] * conj(f[i][m - 2]) * f[i][m];
                 }
             }
         }
     }
+}
+
+
+complex<double> bf1(vector<vector<complex<double>>>& f, int k, int i, int j, int a, int b, int n, int m, int p, int q) {
+    complex<double> bi = 0;
+
+    if (b == i && q != n + 1 && j == k) {
+        if (a != k) {
+            if (m >= 2) {
+                bi -= (n + 1) * sqrt(m * (m - 1) * (p + 1)) * conj(f[i][n]) * conj(f[a][p + 1]) * conj(f[k][m - 2]) * f[i][n] * f[a][p] * f[k][m];
+                bi += (n + 1) * sqrt(m * (m - 1) * (p + 1)) * conj(f[i][n + 1]) * conj(f[a][p + 1]) * conj(f[k][m - 2]) * f[i][n + 1] * f[a][p] * f[k][m];
+            }
+            if (m < nmax) {
+                bi += (n + 1) * sqrt(m * (m + 1) * (p + 1)) * conj(f[i][n]) * conj(f[a][p + 1]) * conj(f[k][m - 1]) * f[i][n] * f[a][p] * f[k][m + 1];
+                bi -= (n + 1) * sqrt(m * (m + 1) * (p + 1)) * conj(f[i][n + 1]) * conj(f[a][p + 1]) * conj(f[k][m - 1]) * f[i][n + 1] * f[a][p] * f[k][m + 1];
+            }
+        }
+        else {
+            if (p == m - 1) {
+                if (m < nmax) {
+                    bi += m * (n + 1) * sqrt(m + 1) * conj(f[i][n]) * conj(f[k][m]) * f[i][n] * f[k][m + 1];
+                    bi -= m * (n + 1) * sqrt(m + 1) * conj(f[i][n + 1]) * conj(f[k][m]) * f[i][n + 1] * f[k][m + 1];
+                }
+            }
+            else if (p == m - 2) {
+                bi -= (m - 1) * (n + 1) * sqrt(m) * conj(f[i][n]) * conj(f[k][m - 1]) * f[i][n] * f[k][m];
+                bi += (m - 1) * (n + 1) * sqrt(m) * conj(f[i][n + 1]) * conj(f[k][m - 1]) * f[i][n + 1] * f[k][m];
+            }
+        }
+    }
+
+}
+
+complex<double> b2(vector<vector<complex<double>>>& f, int k) {
+    
 }
 
 namespace casadi {
@@ -85,7 +118,7 @@ DynamicsProblem::DynamicsProblem() {
     mu = SX::sym("mu");
     t = SX::sym("t");
     xi = SX::sym("xi", 1, 1, L);
-    
+
     Wi = SX::sym("Wi");
     Wf = SX::sym("Wf");
     tau = SX::sym("tau");
@@ -97,20 +130,20 @@ DynamicsProblem::DynamicsProblem() {
     SX Wpt = Wtdt.call(vector<SX>{t})[0];
     U0 = UW(Wt);
     for (int i = 0; i < L; i++) {
-        J[i] = JWij(Wt * xi[i], Wt * xi[mod(i+1)]);
-        Jp[i] = JWij(Wpt * xi[i], Wpt * xi[mod(i+1)]);
+        J[i] = JWij(Wt * xi[i], Wt * xi[mod(i + 1)]);
+        Jp[i] = JWij(Wpt * xi[i], Wpt * xi[mod(i + 1)]);
         dU[i] = UW(Wt * xi[i]) - U0;
     }
-    
+
     vector<SX> params;
     params.push_back(Wi);
     params.push_back(Wf);
     params.push_back(tau);
     for (SX sx : xi) params.push_back(sx);
     params.push_back(mu);
-    
+
     complex<SX> HSc = HS();
-    
+
     x = SX::sym("x", fin.size());
     p = SX::sym("p", params.size());
 
@@ -138,14 +171,14 @@ DynamicsProblem::DynamicsProblem() {
     Function HSidff = HSf.gradient(0, 1);
     HSrdff.init();
     HSidff.init();
-    
+
     SX HSrdftmp = HSrdff.call(vector<SX>{x, p})[0];
     SX HSidftmp = HSidff.call(vector<SX>{x, p})[0];
-    
-    ode = SX::sym("ode", 2*L*dim);
-    for (int i = 0; i < L*dim; i++) {
-        ode[2*i] = 0.5*(HSrdftmp[2*i] - HSidftmp[2*i+1]);
-        ode[2*i+1] = 0.5*(HSidftmp[2*i] + HSrdftmp[2*i+1]);
+
+    ode = SX::sym("ode", 2 * L * dim);
+    for (int i = 0; i < L * dim; i++) {
+        ode[2 * i] = 0.5 * (HSrdftmp[2 * i] - HSidftmp[2 * i + 1]);
+        ode[2 * i + 1] = 0.5 * (HSidftmp[2 * i] + HSrdftmp[2 * i + 1]);
     }
     ode_func = SXFunction(daeIn("x", x, "t", t, "p", p), daeOut("ode", ode));
 
@@ -168,7 +201,7 @@ void DynamicsProblem::setParameters(double Wi, double Wf, double tau, vector<dou
     for (double xii : xi) params.push_back(xii);
     params.push_back(mu);
     integrator->setOption("t0", 0);
-    integrator->setOption("tf", 2*tau);
+    integrator->setOption("tf", 2 * tau);
     integrator->init();
 }
 
@@ -178,30 +211,30 @@ void DynamicsProblem::setInitial(vector<double>& f0) {
 }
 
 void DynamicsProblem::evolve() {
-      integrator->setInput(x0, INTEGRATOR_X0);
-      integrator->setInput(params, INTEGRATOR_P);
-      integrator->evaluate();
-      DMatrix xf = integrator->output(INTEGRATOR_XF);
-//      cout << xf << endl;
-      
-//      vector<complex<double> > ff(L*dim);
-//      for (int i = 0; i < L*dim; i++) {
-//          ff[i] = complex<double>(xf[2*i].getValue(), xf[2*i+1].getValue());
-//      }
-      vector<vector<complex<double>>> f0(L, vector<complex<double>>(dim));
-      vector<vector<complex<double>>> ff(L, vector<complex<double>>(dim));
-      vector<double> pi(L);
-      double p = 0;
-      for (int i = 0; i < L; i++) {
-          for (int n = 0; n <= nmax; n++) {
-              f0[i][n] = complex<double>(x0[2*(i*dim+n)], x0[2*(i*dim+n)+1]);
-              ff[i][n] = complex<double>(xf[2*(i*dim+n)].getValue(), xf[2*(i*dim+n)+1].getValue());
-          }
-          pi[i] = 1 - norm(dot(ff[i], f0[i]));
-          p += pi[i];
-      }
-      p /= L;
-      cout << p << endl;
+    integrator->setInput(x0, INTEGRATOR_X0);
+    integrator->setInput(params, INTEGRATOR_P);
+    integrator->evaluate();
+    DMatrix xf = integrator->output(INTEGRATOR_XF);
+    //      cout << xf << endl;
+
+    //      vector<complex<double> > ff(L*dim);
+    //      for (int i = 0; i < L*dim; i++) {
+    //          ff[i] = complex<double>(xf[2*i].getValue(), xf[2*i+1].getValue());
+    //      }
+    vector<vector<complex<double>>> f0(L, vector<complex<double>>(dim));
+    vector<vector<complex<double>>> ff(L, vector<complex<double>>(dim));
+    vector<double> pi(L);
+    double p = 0;
+    for (int i = 0; i < L; i++) {
+        for (int n = 0; n <= nmax; n++) {
+            f0[i][n] = complex<double>(x0[2 * (i * dim + n)], x0[2 * (i * dim + n) + 1]);
+            ff[i][n] = complex<double>(xf[2 * (i * dim + n)].getValue(), xf[2 * (i * dim + n) + 1].getValue());
+        }
+        pi[i] = 1 - norm(dot(ff[i], f0[i]));
+        p += pi[i];
+    }
+    p /= L;
+    cout << p << endl;
 }
 
 //double DynamicsProblem::solve(vector<double>& f) {
@@ -228,19 +261,19 @@ complex<SX> DynamicsProblem::HS() {
     for (int i = 0; i < L; i++) {
         f[i] = reinterpret_cast<complex<SX>*> (&fin[2 * i * dim]);
         for (int n = 0; n <= nmax; n++) {
-//            norm2[i] += f[i][n].real() * f[i][n].real() + f[i][n].imag() * f[i][n].imag();
+            //            norm2[i] += f[i][n].real() * f[i][n].real() + f[i][n].imag() * f[i][n].imag();
         }
     }
 
     complex<SX> E = complex<SX>(0, 0);
 
     complex<SX> Ei, Ej1, Ej2, Ej1j2, Ej1k1, Ej2k2;
-    
-//    complex<SX> S0 = complex<SX>(0, 0);
+
+    //    complex<SX> S0 = complex<SX>(0, 0);
     complex<SX> S = complex<SX>(0, 0);
 
-    complex<SX> Sj10, Sj20;//, Sj1, Sj2, Sj1j2, Sj1k1, Sj2k2;
-    
+    complex<SX> Sj10, Sj20; //, Sj1, Sj2, Sj1j2, Sj1k1, Sj2k2;
+
     for (int i = 0; i < L; i++) {
 
         int k1 = mod(i - 2);
@@ -310,7 +343,7 @@ complex<SX> DynamicsProblem::HS() {
                                 * ~f[i][n + 1] * ~f[j1][m - 1] * f[i][n] * f[j1][m];
                         Ej2 += J[i] * g(n, m) * (eps(dU, i, j2, n, m) / eps(U0, n, m))
                                 * ~f[i][n + 1] * ~f[j2][m - 1] * f[i][n] * f[j2][m];
-                        
+
                         Sj10 += -Jp[j1] * g(n, m) * (1 / eps(U0, n, m))
                                 * ~f[i][n + 1] * ~f[j1][m - 1] * f[i][n] * f[j1][m];
                         Sj20 += -Jp[i] * g(n, m) * (1 / eps(U0, n, m))
@@ -499,12 +532,12 @@ complex<SX> DynamicsProblem::HS() {
             }
         }
 
-//        Ei /= norm2[i];
-//        Ej1 /= norm2[i] * norm2[j1];
-//        Ej2 /= norm2[i] * norm2[j2];
-//        Ej1j2 /= norm2[i] * norm2[j1] * norm2[j2];
-//        Ej1k1 /= norm2[i] * norm2[j1] * norm2[k1];
-//        Ej2k2 /= norm2[i] * norm2[j2] * norm2[k2];
+        //        Ei /= norm2[i];
+        //        Ej1 /= norm2[i] * norm2[j1];
+        //        Ej2 /= norm2[i] * norm2[j2];
+        //        Ej1j2 /= norm2[i] * norm2[j1] * norm2[j2];
+        //        Ej1k1 /= norm2[i] * norm2[j1] * norm2[k1];
+        //        Ej2k2 /= norm2[i] * norm2[j2] * norm2[k2];
 
         E += Ei;
         E += Ej1;
@@ -516,19 +549,18 @@ complex<SX> DynamicsProblem::HS() {
         S += Sj10;
         S += Sj20;
 
-//        S += Sj10;
-//        S += Sj20;
-//        S += Sj1;
-//        S += Sj2;
-//        S += Sj1j2;
-//        S += Sj1k1;
-//        S += Sj2k2;
+        //        S += Sj10;
+        //        S += Sj20;
+        //        S += Sj1;
+        //        S += Sj2;
+        //        S += Sj1j2;
+        //        S += Sj1k1;
+        //        S += Sj2k2;
     }
-    
-    return complex<SX>(S.real(), -E.real());
-    
-//    return -complex<SX>(0, 1)*E + S; 
 
-//    return E.real();// - (complex<SX>(0, 1) * S).real();
+    return complex<SX>(S.real(), -E.real());
+
+    //    return -complex<SX>(0, 1)*E + S; 
+
+    //    return E.real();// - (complex<SX>(0, 1) * S).real();
 }
- 
