@@ -62,24 +62,16 @@ complex<double> b1(vector<vector<complex<double>>>& f, int i, vector<double>& J,
     return bi;
 }
 
-vector<double> bs;
-
 complex<double> bf1(vector<vector<complex<double>>>& f, int k, int i, int j, int a, int b, int n, int m, int p, int q) {
     complex<double> bi = 0;
 
     if (b == i && q == n + 1 && j == k) {
         if (a != k) {
             if (m >= 2) {
-//                cout << "Branch 1" << endl;
-//                cout << (n + 1) * sqrt(1.0*m * (m - 1) * (p + 1)) * conj(f[i][n]) * conj(f[a][p + 1]) * conj(f[k][m - 2]) * f[i][n] * f[a][p] * f[k][m] << endl;
-//                cout << (n + 1) * sqrt(1.0*m * (m - 1) * (p + 1)) * conj(f[i][n + 1]) * conj(f[a][p + 1]) * conj(f[k][m - 2]) * f[i][n + 1] * f[a][p] * f[k][m] << endl;
                 bi -= (n + 1) * sqrt(1.0*m * (m - 1) * (p + 1)) * conj(f[i][n]) * conj(f[a][p + 1]) * conj(f[k][m - 2]) * f[i][n] * f[a][p] * f[k][m];
                 bi += (n + 1) * sqrt(1.0*m * (m - 1) * (p + 1)) * conj(f[i][n + 1]) * conj(f[a][p + 1]) * conj(f[k][m - 2]) * f[i][n + 1] * f[a][p] * f[k][m];
             }
             if (m < nmax) {
-//                cout << "Branch 2" << endl;
-//                cout << (n + 1) * sqrt(1.0*m * (m + 1) * (p + 1)) * conj(f[i][n]) * conj(f[a][p + 1]) * conj(f[k][m - 1]) * f[i][n] * f[a][p] * f[k][m + 1] << endl;
-//                cout << (n + 1) * sqrt(1.0*m * (m + 1) * (p + 1)) * conj(f[i][n + 1]) * conj(f[a][p + 1]) * conj(f[k][m - 1]) * f[i][n + 1] * f[a][p] * f[k][m + 1] << endl;
                 bi += (n + 1) * sqrt(1.0*m * (m + 1) * (p + 1)) * conj(f[i][n]) * conj(f[a][p + 1]) * conj(f[k][m - 1]) * f[i][n] * f[a][p] * f[k][m + 1];
                 bi -= (n + 1) * sqrt(1.0*m * (m + 1) * (p + 1)) * conj(f[i][n + 1]) * conj(f[a][p + 1]) * conj(f[k][m - 1]) * f[i][n + 1] * f[a][p] * f[k][m + 1];
             }
@@ -87,18 +79,11 @@ complex<double> bf1(vector<vector<complex<double>>>& f, int k, int i, int j, int
         else {
             if (p == m - 1) {
                 if (m < nmax) {
-//                cout << "Branch 3" << endl;
-//                cout << f[i][n] << "\t" << f[k][m] << "\t" << f[k][m+1] << endl;
-//                    cout << m * (n + 1) * sqrt(1.0*m + 1) * conj(f[i][n]) * conj(f[k][m]) * f[i][n] * f[k][m + 1] << endl;
-//                    cout << m * (n + 1) * sqrt(1.0*m + 1) * conj(f[i][n + 1]) * conj(f[k][m]) * f[i][n + 1] * f[k][m + 1] << endl;
                     bi += m * (n + 1) * sqrt(1.0*m + 1) * conj(f[i][n]) * conj(f[k][m]) * f[i][n] * f[k][m + 1];
                     bi -= m * (n + 1) * sqrt(1.0*m + 1) * conj(f[i][n + 1]) * conj(f[k][m]) * f[i][n + 1] * f[k][m + 1];
                 }
             }
             else if (p == m - 2) {
-//                cout << "Branch 4" << endl;
-//                cout << (m - 1) * (n + 1) * sqrt(1.0*m) * conj(f[i][n]) * conj(f[k][m - 1]) * f[i][n] * f[k][m] << endl;
-//                cout << (m - 1) * (n + 1) * sqrt(1.0*m) * conj(f[i][n + 1]) * conj(f[k][m - 1]) * f[i][n + 1] * f[k][m] << endl;
                 bi -= (m - 1) * (n + 1) * sqrt(1.0*m) * conj(f[i][n]) * conj(f[k][m - 1]) * f[i][n] * f[k][m];
                 bi += (m - 1) * (n + 1) * sqrt(1.0*m) * conj(f[i][n + 1]) * conj(f[k][m - 1]) * f[i][n + 1] * f[k][m];
             }
@@ -126,19 +111,6 @@ complex<double> b2(vector<vector<complex<double>>>& f, int k, vector<double>& J,
                     for (int p = 0; p < nmax; p++) {
                         for (int q = 1; q <= nmax; q++) {
                             if (n != m-1 && p != q-1) {
-//                                if (a == 0 && b2 == 1) {
-                                if (i == 1 && j1 == 0 && a == 0 && b2 == 1 && n == 4 && m == 4 && p == 3 && q == 5) {
-                                    cout << "Should get here" << endl;
-                                }
-                                complex<double> bb1 = J[j1] * J[b1] / (eps(U, n, m) * eps(U, p, q)) * bf(f, k, i, j1, a, b1, n, m, p, q);
-                                complex<double> bb2 = J[j1] * J[a] / (eps(U, n, m) * eps(U, p, q)) * bf(f, k, i, j1, a, b2, n, m, p, q);
-                                complex<double> bb3 = J[i] * J[b1] / (eps(U, n, m) * eps(U, p, q)) * bf(f, k, i, j2, a, b1, n, m, p, q);
-                                complex<double> bb4 = J[i] * J[a] / (eps(U, n, m) * eps(U, p, q)) * bf(f, k, i, j2, a, b2, n, m, p, q);
-                                if (bb1 != 0.) bs.push_back(bb1.real());
-                                if (bb2 != 0.) bs.push_back(bb2.real());
-                                if (bb3 != 0.) bs.push_back(bb3.real());
-                                if (bb4 != 0.) bs.push_back(bb4.real());
-
                                 bi += J[j1] * J[b1] / (eps(U, n, m) * eps(U, p, q)) * bf(f, k, i, j1, a, b1, n, m, p, q);
                                 bi += J[j1] * J[a] / (eps(U, n, m) * eps(U, p, q)) * bf(f, k, i, j1, a, b2, n, m, p, q);
                                 bi += J[i] * J[b1] / (eps(U, n, m) * eps(U, p, q)) * bf(f, k, i, j2, a, b1, n, m, p, q);
@@ -179,8 +151,6 @@ DynamicsProblem::DynamicsProblem() {
     complex<double> qwe = b2(ff, 0, JJ, UU);
 //    complex<double> qwe = bf1(ff, 0, 1, 0, 0, 1, 4, 4, 3, 5);
     cout << qwe << endl;
-    sort(bs.begin(), bs.end());
-    cout << bs << endl;
     exit(0);
     
     fin = SX::sym("f", 1, 1, 2 * L * dim);
