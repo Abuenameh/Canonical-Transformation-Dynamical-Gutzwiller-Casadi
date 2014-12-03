@@ -144,17 +144,17 @@ complex<double> bf3(vector<vector<complex<double>>>& f, int k, int i, int j, int
                 bi += sqrt(1.0 * q * n * (n+1) * (m-1) * m) * conj(f[i][n+1]) * conj(f[b][q-1]) * conj(f[k][m-2]) * f[i][n-1] * f[b][q] * f[k][m];
             }
         }
-        else if (p == n+1) {
-            if (q == m+2) {
+        else {
+            if (q == m+2 && p == n+1) {
                 bi += sqrt(1.0 * (n+1) * (n+2) * m * (m+1) * (m+2)) * conj(f[i][n+2]) * conj(f[k][m-1]) * f[i][n] * f[k][m+2];
             }
-            if (q == m+1 && m >= 2) {
+            if (q == m+1 && m >= 2 && p == n+1) {
                 bi -= sqrt(1.0 * (n+1) * (n+2) * (m-1) * m * (m+1)) * conj(f[i][n+2]) * conj(f[k][m-2]) * f[i][n] * f[k][m+1];
             }
-            if (q == m+2) {
+            if (q == m+2 && p == n-1) {
                 bi -= sqrt(1.0 * n * (n+1) * m * (m+1) * (m+2)) * conj(f[i][n+1]) * conj(f[k][m-1]) * f[i][n-1] * f[k][m+2];
             }
-            if (q == m+1 && m >= 2) {
+            if (q == m+1 && m >= 2 && p == n-1) {
                 bi += sqrt(1.0 * n * (n+1) * (m-1) * m * (m+1)) * conj(f[i][n+1]) * conj(f[k][m-2]) * f[i][n-1] * f[k][m+1];
             }
         }
@@ -239,16 +239,16 @@ complex<double> bf6(vector<vector<complex<double>>>& f, int k, int i, int j, int
         }
         else {
             if (p == n+1 && q == m-1) {
-                bi += sqrt(1.0 * m * (m-1) * (n+2)) * conj(f[j][m-2]) * conj(f[k][n+2]) * f[j][m] * f[k][n+1];
+                bi += (n+1) * sqrt(1.0 * m * (m-1) * (n+2)) * conj(f[j][m-2]) * conj(f[k][n+2]) * f[j][m] * f[k][n+1];
             }
             if (p == n+1 && q == m+1) {
-                bi -= sqrt(1.0 * m * (m+1) * (n+2)) * conj(f[j][m-1]) * conj(f[k][n+2]) * f[j][m+1] * f[k][n+1];
+                bi -= (n+1) * sqrt(1.0 * m * (m+1) * (n+2)) * conj(f[j][m-1]) * conj(f[k][n+2]) * f[j][m+1] * f[k][n+1];
             }
             if (p == n && q == m-1) {
-                bi -= sqrt(1.0 * m * (m-1) * (n+1)) * conj(f[j][m-2]) * conj(f[k][n+1]) * f[j][m] * f[k][n];
+                bi -= (n+1) * sqrt(1.0 * m * (m-1) * (n+1)) * conj(f[j][m-2]) * conj(f[k][n+1]) * f[j][m] * f[k][n];
             }
             if (p == n && q == m+1) {
-                bi += sqrt(1.0 * m * (m+1) * (n+1)) * conj(f[j][m-1]) * conj(f[k][n+1]) * f[j][m+1] * f[k][n];
+                bi += (n+1) * sqrt(1.0 * m * (m+1) * (n+1)) * conj(f[j][m-1]) * conj(f[k][n+1]) * f[j][m+1] * f[k][n];
             }
         }
     }
@@ -284,16 +284,38 @@ complex<double> bf7(vector<vector<complex<double>>>& f, int k, int i, int j, int
     return bi;
 }
 
+complex<double> bf8(vector<vector<complex<double>>>& f, int k, int i, int j, int a, int b, int n, int m, int p, int q) {
+    complex<double> bi = 0;
+    if (i == k && m == p+1 && j == a) {
+        if (i != b) {
+            bi += (n+1) * m * sqrt(1.0*q) * conj(f[j][m]) * conj(f[b][q-1]) * conj(f[k][n+1]) * f[j][m] * f[b][q] * f[k][n+1];
+            bi -= (n+1) * m * sqrt(1.0*q) * conj(f[j][m-1]) * conj(f[b][q-1]) * conj(f[k][n+1]) * f[j][m-1] * f[b][q] * f[k][n+1];
+            bi -= (n+1) * m * sqrt(1.0*q) * conj(f[j][m]) * conj(f[b][q-1]) * conj(f[k][n]) * f[j][m] * f[b][q] * f[k][n];
+            bi += (n+1) * m * sqrt(1.0*q) * conj(f[j][m-1]) * conj(f[b][q-1]) * conj(f[k][n]) * f[j][m-1] * f[b][q] * f[k][n];
+        }
+        else {
+            if (q == n+2) {
+                bi += (n+1) * m * sqrt(1.0*(n+2)) * conj(f[k][n+1]) * f[k][n+2] * (conj(f[j][m]) * f[j][m] - conj(f[j][m-1]) * f[j][m-1]);
+            }
+            if (q == n+1) {
+                bi -= (n+1) * m * sqrt(1.0*(n+1)) * conj(f[k][n]) * f[k][n+1] * (conj(f[j][m]) * f[j][m] - conj(f[j][m-1]) * f[j][m-1]);
+            }
+        }
+    }
+    return bi;
+}
+
 
 complex<double> bf(vector<vector<complex<double>>>& f, int k, int i, int j, int a, int b, int n, int m, int p, int q) {
     complex<double> bi = 0;
-//    bi += bf1(f, k, i, j, a, b, n, m, p, q);
-//    bi += bf2(f, k, i, j, a, b, n, m, p, q);
-//    bi += bf3(f, k, i, j, a, b, n, m, p, q);
-//    bi += bf4(f, k, i, j, a, b, n, m, p, q);
-//    bi += bf5(f, k, i, j, a, b, n, m, p, q);
-//    bi += bf6(f, k, i, j, a, b, n, m, p, q);
+    bi += bf1(f, k, i, j, a, b, n, m, p, q);
+    bi += bf2(f, k, i, j, a, b, n, m, p, q);
+    bi += bf3(f, k, i, j, a, b, n, m, p, q);
+    bi += bf4(f, k, i, j, a, b, n, m, p, q);
+    bi += bf5(f, k, i, j, a, b, n, m, p, q);
+    bi += bf6(f, k, i, j, a, b, n, m, p, q);
     bi += bf7(f, k, i, j, a, b, n, m, p, q);
+    bi += bf8(f, k, i, j, a, b, n, m, p, q);
     return bi;
 }
 
@@ -321,6 +343,48 @@ complex<double> b2(vector<vector<complex<double>>>& f, int k, vector<double>& J,
             }
         }
     }
+    return 0.5 * bi;
+}
+
+complex<double> b3(vector<vector<complex<double>>>& f, int k, vector<double>& J, double U) {
+    complex<double> bi = 0;
+    for (int i = 0; i < L; i++) {
+        int j1 = mod(i - 1);
+        int j2 = mod(i + 1);
+        for (int a = 0; a < L; a++) {
+            int b1 = mod(a - 1);
+            int b2 = mod(a + 1);
+            for (int n = 0; n < nmax; n++) {
+                for (int m = 1; m <= nmax; m++) {
+                    for (int p = 0; p < nmax; p++) {
+                        if (n != m-1) {
+                            bi += J[j1] * J[b1] / (eps(U, n, m) * (eps(U, n, m) + eps(U, p, p+1))) * (bf(f, k, a, b1, i, j1, p, p+1, n, m) - bf(f, k, i, j1, a, b1, n, m, p, p+1));
+                            bi += J[j1] * J[a] / (eps(U, n, m) * (eps(U, n, m) + eps(U, p, p+1))) * (bf(f, k, a, b2, i, j1, p, p+1, n, m) - bf(f, k, i, j1, a, b2, n, m, p, p+1));
+                            bi += J[i] * J[b1] / (eps(U, n, m) * (eps(U, n, m) + eps(U, p, p+1))) * (bf(f, k, a, b1, i, j2, p, p+1, n, m) - bf(f, k, i, j2, a, b1, n, m, p, p+1));
+                            bi += J[i] * J[a] / (eps(U, n, m) * (eps(U, n, m) + eps(U, p, p+1))) * (bf(f, k, a, b2, i, j2, p, p+1, n, m) - bf(f, k, i, j2, a, b2, n, m, p, p+1));
+                        }
+                        for (int q = 1; q <= nmax; q++) {
+                            if (n != m-1 && p != q-1 && n - m != p - q) {
+                                bi += 0.25 * J[j1] * J[b1] / (eps(U, n, m) + eps(U, q-1, p+1)) * (1 / eps(U, n, m) - 1 / eps(U, q-1, p+1)) * (bf(f, k, a, b1, i, j1, q-1, p+1, n, m) - bf(f, k, i, j1, a, b1, n, m, q-1, p+1));
+                                bi += 0.25 * J[j1] * J[a] / (eps(U, n, m) + eps(U, q-1, p+1)) * (1 / eps(U, n, m) - 1 / eps(U, q-1, p+1)) * (bf(f, k, a, b2, i, j1, q-1, p+1, n, m) - bf(f, k, i, j1, a, b2, n, m, q-1, p+1));
+                                bi += 0.25 * J[i] * J[b1] / (eps(U, n, m) + eps(U, q-1, p+1)) * (1 / eps(U, n, m) - 1 / eps(U, q-1, p+1)) * (bf(f, k, a, b1, i, j2, q-1, p+1, n, m) - bf(f, k, i, j2, a, b1, n, m, q-1, p+1));
+                                bi += 0.25 * J[i] * J[a] / (eps(U, n, m) + eps(U, q-1, p+1)) * (1 / eps(U, n, m) - 1 / eps(U, q-1, p+1)) * (bf(f, k, a, b2, i, j2, q-1, p+1, n, m) - bf(f, k, i, j2, a, b2, n, m, q-1, p+1));
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+    return bi;
+}
+
+complex<double> b(vector<vector<complex<double>>>& f, int k, vector<double>& J, double U) {
+    complex<double> bi = 0;
+    bi += b0(f, k);
+    bi += b1(f, k, J, U);
+    bi += b2(f, k, J, U);
+    bi += b3(f, k, J, U);
     return bi;
 }
 
@@ -339,18 +403,20 @@ namespace casadi {
 
 DynamicsProblem::DynamicsProblem() {
     
-    vector<vector<complex<double>>> ff({vector<complex<double>>{0.4704433287137315,0.31278265828701396,0.020491099557798563,0.5120264351039052,
-    0.4418501306816557,0.47225796949755755},vector<complex<double>>{0.5055884439289716,0.30266074435637946,0.09512521370830883,0.24918922817582706,
-    0.5783175475335864,0.4971735468465169},vector<complex<double>>{0.23298975595641222,0.5093931448039285,0.3201022274576789,0.32897215154641374,
-    0.4453746331978017,0.5264862023202649},vector<complex<double>>{0.030551894237901167,0.6347337871321124,0.013578078921715465,0.6730435257425468,
-    0.20898496392524407,0.31517127774180836},vector<complex<double>>{0.5035952546202369,0.5821938736982794,0.27559620353757475,0.29400743122032663,
-    0.3952426430295389,0.2980465216473689}});
-    vector<double> JJ(5, 8.608695652173912e6);
-    double UU = 1.0633270321361059e8;
-    complex<double> qwe = b2(ff, 0, JJ, UU);
-//    complex<double> qwe = bf1(ff, 0, 1, 0, 0, 1, 4, 4, 3, 5);
-    cout << qwe << endl;
-    exit(0);
+//    vector<vector<complex<double>>> ff({vector<complex<double>>{0.4704433287137315,0.31278265828701396,0.020491099557798563,0.5120264351039052,
+//    0.4418501306816557,0.47225796949755755},vector<complex<double>>{0.5055884439289716,0.30266074435637946,0.09512521370830883,0.24918922817582706,
+//    0.5783175475335864,0.4971735468465169},vector<complex<double>>{0.23298975595641222,0.5093931448039285,0.3201022274576789,0.32897215154641374,
+//    0.4453746331978017,0.5264862023202649},vector<complex<double>>{0.030551894237901167,0.6347337871321124,0.013578078921715465,0.6730435257425468,
+//    0.20898496392524407,0.31517127774180836},vector<complex<double>>{0.5035952546202369,0.5821938736982794,0.27559620353757475,0.29400743122032663,
+//    0.3952426430295389,0.2980465216473689}});
+////    vector<double> JJ(5, 8.608695652173912e6);
+//    vector<double> JJ({2.359359141043023e6,4.996229498581644e6,6.901292936302477e6,8.126176253257117e6,
+//   3.452496551985471e6});
+//    double UU = 1.0633270321361059e8;
+//    complex<double> qwe = b(ff, 0, JJ, UU);
+////    complex<double> qwe = bf1(ff, 0, 1, 0, 0, 1, 4, 4, 3, 5);
+//    cout << qwe << endl;
+//    exit(0);
     
     fin = SX::sym("f", 1, 1, 2 * L * dim);
     dU = SX::sym("dU", 1, 1, L);
