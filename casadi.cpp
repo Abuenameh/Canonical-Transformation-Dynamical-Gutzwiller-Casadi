@@ -941,7 +941,7 @@ complex<SX> DynamicsProblem::HS() {
 
 GroundStateProblem::GroundStateProblem() {
     fin = SX::sym("f", 1, 1, 2 * L * dim);
-    W = SX::sym("W", 1, 1, L);
+    W = SX::sym("W");
     dU = SX::sym("dU", 1, 1, L);
     J = SX::sym("J", 1, 1, L);
     U0 = SX::sym("U0");
@@ -950,13 +950,13 @@ GroundStateProblem::GroundStateProblem() {
     xi = SX::sym("xi", 1, 1, L);
 
     vector<SX> params;
+    params.push_back(W);
     for (SX sx : xi) params.push_back(sx);
 //    params.push_back(U0);
 //    for (SX sx : dU) params.push_back(sx);
 //    for (SX sx : J) params.push_back(sx);
     params.push_back(mu);
     params.push_back(theta);
-    for (SX sx : xi) params.push_back(sx);
     
     U0 = UW(W);
     for (int i = 0; i < L; i++) {
@@ -991,26 +991,19 @@ GroundStateProblem::GroundStateProblem() {
     Egradf = Ef.gradient(NL_X, NL_F);
     Egradf.init();
 
-    nlp = NlpSolver("ipopt", Ef);
-
-    nlp.setOption("sb", "yes");
-    nlp.setOption("verbose", false);
-    nlp.setOption("print_level", 0);
-    nlp.setOption("print_time", 0);
-    //    nlp.setOption("acceptable_tol", 1e-5);
-    //    nlp.setOption("linear_solver", "ma57");
-    //    nlp.setOption("ma57_automatic_scaling", "yes");
-    //    nlp.setOption("ma57_small_pivot_flag", 1);
-    nlp.setOption("hessian_approximation", "limited-memory");
-    //    nlp.setOption("check_derivatives_for_naninf", "yes");
-    //    nlp.setOption("ma57_automatic_scaling", "no");
-    //    nlp.setOption("monitor", vector<string>{"eval_f"});
-
-    nlp.init();
-
-    nlp.setInput(lb, "lbx");
-    nlp.setInput(ub, "ubx");
-    nlp.setInput(x0, "x0");
+//    nlp = NlpSolver("ipopt", Ef);
+//
+//    nlp.setOption("sb", "yes");
+//    nlp.setOption("verbose", false);
+//    nlp.setOption("print_level", 0);
+//    nlp.setOption("print_time", 0);
+//    nlp.setOption("hessian_approximation", "limited-memory");
+//
+//    nlp.init();
+//
+//    nlp.setInput(lb, "lbx");
+//    nlp.setInput(ub, "ubx");
+//    nlp.setInput(x0, "x0");
 
 }
 
@@ -1036,10 +1029,11 @@ double GroundStateProblem::E(const vector<double>& f, vector<double>& grad) {
 
 void GroundStateProblem::setParameters(/*double U0, vector<double>& dU, vector<double>& J,*/double W_, vector<double>& xi_,  double mu) {
     params.clear();
+    params.push_back(W_);
     for (double xii : xi_) params.push_back(xii);
-    params.push_back(U0);
-    params.insert(params.end(), dU.begin(), dU.end());
-    params.insert(params.end(), J.begin(), J.end());
+//    params.push_back(U0);
+//    params.insert(params.end(), dU.begin(), dU.end());
+//    params.insert(params.end(), J.begin(), J.end());
     params.push_back(mu);
     params.push_back(0);
 }
@@ -1049,20 +1043,21 @@ void GroundStateProblem::setTheta(double theta) {
 }
 
 double GroundStateProblem::solve(vector<double>& f) {
-    nlp.setInput(params, "p");
-
-    nlp.evaluate();
-
-    Dictionary& stats = const_cast<Dictionary&> (nlp.getStats());
-    status = stats["return_status"].toString();
-    runtime = stats["t_mainloop"].toDouble();
-
-    DMatrix xout = nlp.output("x");
-    f.resize(xout.size());
-    for (int i = 0; i < xout.size(); i++) {
-        f[i] = xout.at(i);
-    }
-    return nlp.output("f").getValue();
+//    nlp.setInput(params, "p");
+//
+//    nlp.evaluate();
+//
+//    Dictionary& stats = const_cast<Dictionary&> (nlp.getStats());
+//    status = stats["return_status"].toString();
+//    runtime = stats["t_mainloop"].toDouble();
+//
+//    DMatrix xout = nlp.output("x");
+//    f.resize(xout.size());
+//    for (int i = 0; i < xout.size(); i++) {
+//        f[i] = xout.at(i);
+//    }
+//    return nlp.output("f").getValue();
+    return 0;
 }
 
 SX GroundStateProblem::energy() {

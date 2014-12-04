@@ -98,7 +98,8 @@ class GroundStateProblem {
 public:
     GroundStateProblem();
     
-    void setParameters(double U0, vector<double>& dU, vector<double>& J, double mu);
+//    void setParameters(double U0, vector<double>& dU, vector<double>& J, double mu);
+    void setParameters(double W, vector<double>& xi, double mu);
     void setTheta(double theta);
     
     double solve(vector<double>& f);
@@ -119,9 +120,11 @@ private:
     SX energy();
     
     vector<SX> fin;
+    SX W;
     SX U0;
     vector<SX> dU;
     vector<SX> J;
+    vector<SX> xi;
     SX mu;
     SX theta;
     
@@ -132,7 +135,7 @@ private:
     
     SXFunction Ef;
     Function Egradf;
-    NlpSolver nlp;
+//    NlpSolver nlp;
     
     string status;
     double runtime;
