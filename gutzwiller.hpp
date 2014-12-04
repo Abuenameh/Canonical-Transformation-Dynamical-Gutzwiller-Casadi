@@ -46,6 +46,10 @@ inline SX g(int n, int m) {
     return sqrt(1.0*(n + 1) * m);
 }
 
+inline double g2(int n, int m) {
+    return sqrt(1.0*(n + 1) * m);
+}
+
 inline SX eps(vector<SX>& U, int i, int j, int n, int m) {
 	return n * U[i] - (m - 1) * U[j];
 }
