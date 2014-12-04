@@ -22,9 +22,11 @@ using namespace nlopt;
  * 
  */
 int main(int argc, char** argv) {
+    
+    cout << setprecision(10);
 
     double Wi = 2e11;
-    double Wf = 2e11;
+    double Wf = 1e11;
     double tau = 1e-6;
     double mu = 0.5;
     vector<double> xi(L, 1);
@@ -40,7 +42,7 @@ int main(int argc, char** argv) {
     lopt.set_upper_bounds(1);
     lopt.set_min_objective(energyfunc, &gsprob);
 
-    vector<double> f0(ndim);
+    vector<double> f0(ndim, 1);
 
     double E0;
     string result0;

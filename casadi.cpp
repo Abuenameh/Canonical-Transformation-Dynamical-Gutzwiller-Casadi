@@ -4,10 +4,10 @@ using namespace boost;
 
 #include "casadi.hpp"
 
-//double energyfunc(const vector<double>& x, vector<double>& grad, void *data) {
-//    DynamicsProblem* prob = static_cast<DynamicsProblem*> (data);
-//    return prob->E(x, grad);
-//}
+double energyfunc(const vector<double>& x, vector<double>& grad, void *data) {
+    GroundStateProblem* prob = static_cast<GroundStateProblem*> (data);
+    return prob->E(x, grad);
+}
 
 SX JW(SX W) {
     return alpha * (W * W) / (Ng * Ng + W * W);
@@ -494,6 +494,8 @@ DynamicsProblem::DynamicsProblem() {
     integrator = new CvodesInterface(ode_func, g);
     integrator->setOption("max_num_steps", 100000);
     integrator->init();
+
+    gsprob = new GroundStateProblem();
 }
 
 string DynamicsProblem::getRuntime() {
@@ -502,6 +504,8 @@ string DynamicsProblem::getRuntime() {
 }
 
 void DynamicsProblem::setParameters(double Wi_, double Wf_, double tau_, vector<double>& xi_, double mu) {
+    gsprob->setParameters(Wi_, xi_, mu);
+
     params.clear();
     params.push_back(Wi_);
     params.push_back(Wf_);
@@ -537,6 +541,17 @@ void DynamicsProblem::setParameters(double Wi_, double Wf_, double tau_, vector<
 void DynamicsProblem::setInitial(vector<double>& f0) {
     x0.clear();
     for (double f0i : f0) x0.push_back(f0i);
+    vector<complex<double>> fi(dim);
+    for (int i = 0; i < L; i++) {
+        for (int n = 0; n <= nmax; n++) {
+            fi[n] = complex<double>(x0[2 * (i * dim + n)], x0[2 * (i * dim + n) + 1]);
+        }
+        double nrm = sqrt(abs(dot(fi, fi)));
+        for (int n = 0; n <= nmax; n++) {
+            x0[2 * (i * dim + n)] /= nrm;
+            x0[2 * (i * dim + n) + 1] /= nrm;
+        }
+    }
 }
 
 void DynamicsProblem::evolve() {
@@ -545,11 +560,22 @@ void DynamicsProblem::evolve() {
     integrator->evaluate();
     DMatrix xf = integrator->output(INTEGRATOR_XF);
     //      cout << xf << endl;
-    
+    vector<double> ff;
+    for (int i = 0; i < 2 * L * dim; i++) {
+        ff.push_back(xf[i].getValue());
+    }
+
+    vector<double> grad;
+    double E0 = gsprob->E(x0, grad);
+    double E1 = gsprob->E(ff, grad);
+//    cout << E0 << endl;
+//    cout << E1 << endl;
+    cout << "Q = " << E1 - E0 << endl;
+
     vector<double> bv;
 
     integrator->reset();
-    int npoints = 20;
+    int npoints = 100;
     for (int j = 0; j < npoints; j++) {
         double ti = j * tf / npoints;
         integrator->integrate(ti);
@@ -559,7 +585,7 @@ void DynamicsProblem::evolve() {
             for (int n = 0; n <= nmax; n++) {
                 fi[i][n] = complex<double>(x_i[2 * (i * dim + n)].getValue(), x_i[2 * (i * dim + n) + 1].getValue());
             }
-            double nrm = abs(dot(fi[i], fi[i]));
+            double nrm = sqrt(abs(dot(fi[i], fi[i])));
             for (int n = 0; n <= nmax; n++) {
                 fi[i][n] /= nrm;
             }
@@ -577,55 +603,74 @@ void DynamicsProblem::evolve() {
         for (int i = 0; i < L; i++) {
             bsi[i] = abs(bsci[i]);
         }
-        cout << bsi << endl;
+//        cout << bsi << endl;
         bv.push_back(bsi[0]);
     }
     cout << bv << endl;
 
-//    DMatrix tim = 0;
-//    DMatrix t1m = 0.5 * tf;
-//    DMatrix tfm = tf;
-//    double Ui = Ufunc(tim)[0].getValue();
-//    double U1 = Ufunc(t1m)[0].getValue();
-//    double Uf = Ufunc(tfm)[0].getValue();
-//    vector<double> Ji(L), J1(L), Jf(L);
-//    for (int i = 0; i < L; i++) {
-//        Ji[i] = Jfunc[i](tim)[0].getValue();
-//        J1[i] = Jfunc[i](t1m)[0].getValue();
-//        Jf[i] = Jfunc[i](tfm)[0].getValue();
-//    }
-//    cout << Ui << endl;
-//    cout << U1 << endl;
-//    cout << Uf << endl;
-//    cout << Ji << endl;
-//    cout << J1 << endl;
-//    cout << Jf << endl;
-//
-//    vector<vector<complex<double>>> fi(L, vector<complex<double>>(dim));
-//    vector<vector<complex<double>>> ff(L, vector<complex<double>>(dim));
-//    vector<double> pi(L);
-//    vector<complex<double>> bsi(L), bsf(L);
-//    double p = 0;
-//    for (int i = 0; i < L; i++) {
-//        for (int n = 0; n <= nmax; n++) {
-//            fi[i][n] = complex<double>(x0[2 * (i * dim + n)], x0[2 * (i * dim + n) + 1]);
-//            ff[i][n] = complex<double>(xf[2 * (i * dim + n)].getValue(), xf[2 * (i * dim + n) + 1].getValue());
-//        }
-//        double nrm = abs(dot(ff[i], ff[i]));
-//        for (int n = 0; n <= nmax; n++) {
-//            ff[i][n] /= nrm;
-//        }
-//        pi[i] = 1 - norm(dot(ff[i], fi[i]));
-//        p += pi[i];
-//    }
-//    p /= L;
-//    cout << p << endl;
-//    for (int i = 0; i < L; i++) {
-//        bsi[i] = b(fi, i, Ji, Ui);
-//        bsf[i] = b(ff, i, Jf, Uf);
-//    }
-//    cout << bsi << endl;
-//    cout << bsf << endl;
+        vector<vector<complex<double>>> fiv(L, vector<complex<double>>(dim));
+        vector<vector<complex<double>>> ffv(L, vector<complex<double>>(dim));
+        vector<double> pi(L);
+        double p = 0;
+        for (int i = 0; i < L; i++) {
+            for (int n = 0; n <= nmax; n++) {
+                fiv[i][n] = complex<double>(x0[2 * (i * dim + n)], x0[2 * (i * dim + n) + 1]);
+                ffv[i][n] = complex<double>(xf[2 * (i * dim + n)].getValue(), xf[2 * (i * dim + n) + 1].getValue());
+            }
+            double nrm = sqrt(abs(dot(ffv[i], ffv[i])));
+            for (int n = 0; n <= nmax; n++) {
+                ffv[i][n] /= nrm;
+            }
+            pi[i] = 1 - norm(dot(ffv[i], fiv[i]));
+            p += pi[i];
+        }
+        p /= L;
+        cout << "p = " << p << endl;
+
+    //    DMatrix tim = 0;
+    //    DMatrix t1m = 0.5 * tf;
+    //    DMatrix tfm = tf;
+    //    double Ui = Ufunc(tim)[0].getValue();
+    //    double U1 = Ufunc(t1m)[0].getValue();
+    //    double Uf = Ufunc(tfm)[0].getValue();
+    //    vector<double> Ji(L), J1(L), Jf(L);
+    //    for (int i = 0; i < L; i++) {
+    //        Ji[i] = Jfunc[i](tim)[0].getValue();
+    //        J1[i] = Jfunc[i](t1m)[0].getValue();
+    //        Jf[i] = Jfunc[i](tfm)[0].getValue();
+    //    }
+    //    cout << Ui << endl;
+    //    cout << U1 << endl;
+    //    cout << Uf << endl;
+    //    cout << Ji << endl;
+    //    cout << J1 << endl;
+    //    cout << Jf << endl;
+    //
+    //    vector<vector<complex<double>>> fi(L, vector<complex<double>>(dim));
+    //    vector<vector<complex<double>>> ff(L, vector<complex<double>>(dim));
+    //    vector<double> pi(L);
+    //    vector<complex<double>> bsi(L), bsf(L);
+    //    double p = 0;
+    //    for (int i = 0; i < L; i++) {
+    //        for (int n = 0; n <= nmax; n++) {
+    //            fi[i][n] = complex<double>(x0[2 * (i * dim + n)], x0[2 * (i * dim + n) + 1]);
+    //            ff[i][n] = complex<double>(xf[2 * (i * dim + n)].getValue(), xf[2 * (i * dim + n) + 1].getValue());
+    //        }
+    //        double nrm = abs(dot(ff[i], ff[i]));
+    //        for (int n = 0; n <= nmax; n++) {
+    //            ff[i][n] /= nrm;
+    //        }
+    //        pi[i] = 1 - norm(dot(ff[i], fi[i]));
+    //        p += pi[i];
+    //    }
+    //    p /= L;
+    //    cout << p << endl;
+    //    for (int i = 0; i < L; i++) {
+    //        bsi[i] = b(fi, i, Ji, Ui);
+    //        bsf[i] = b(ff, i, Jf, Uf);
+    //    }
+    //    cout << bsi << endl;
+    //    cout << bsf << endl;
 }
 
 complex<SX> DynamicsProblem::HS() {
@@ -635,7 +680,7 @@ complex<SX> DynamicsProblem::HS() {
     for (int i = 0; i < L; i++) {
         f[i] = reinterpret_cast<complex<SX>*> (&fin[2 * i * dim]);
         for (int n = 0; n <= nmax; n++) {
-            //            norm2[i] += f[i][n].real() * f[i][n].real() + f[i][n].imag() * f[i][n].imag();
+            norm2[i] += f[i][n].real() * f[i][n].real() + f[i][n].imag() * f[i][n].imag();
         }
     }
 
@@ -906,12 +951,15 @@ complex<SX> DynamicsProblem::HS() {
             }
         }
 
-        //        Ei /= norm2[i];
-        //        Ej1 /= norm2[i] * norm2[j1];
-        //        Ej2 /= norm2[i] * norm2[j2];
-        //        Ej1j2 /= norm2[i] * norm2[j1] * norm2[j2];
-        //        Ej1k1 /= norm2[i] * norm2[j1] * norm2[k1];
-        //        Ej2k2 /= norm2[i] * norm2[j2] * norm2[k2];
+        Ei /= norm2[i];
+        Ej1 /= norm2[i] * norm2[j1];
+        Ej2 /= norm2[i] * norm2[j2];
+        Ej1j2 /= norm2[i] * norm2[j1] * norm2[j2];
+        Ej1k1 /= norm2[i] * norm2[j1] * norm2[k1];
+        Ej2k2 /= norm2[i] * norm2[j2] * norm2[k2];
+
+        Sj10 /= norm2[i] * norm2[j1];
+        Sj20 /= norm2[i] * norm2[j2];
 
         E += Ei;
         E += Ej1;
@@ -952,12 +1000,12 @@ GroundStateProblem::GroundStateProblem() {
     vector<SX> params;
     params.push_back(W);
     for (SX sx : xi) params.push_back(sx);
-//    params.push_back(U0);
-//    for (SX sx : dU) params.push_back(sx);
-//    for (SX sx : J) params.push_back(sx);
+    //    params.push_back(U0);
+    //    for (SX sx : dU) params.push_back(sx);
+    //    for (SX sx : J) params.push_back(sx);
     params.push_back(mu);
     params.push_back(theta);
-    
+
     U0 = UW(W);
     for (int i = 0; i < L; i++) {
         J[i] = JWij(W * xi[i], W * xi[mod(i + 1)]);
@@ -982,28 +1030,10 @@ GroundStateProblem::GroundStateProblem() {
     E = substitute(vector<SX>{E}, params, ps)[0];
     simplify(E);
 
-    DMatrix lb = DMatrix::repmat(-1, x.size());
-    DMatrix ub = DMatrix::repmat(1, x.size());
-    DMatrix x0 = DMatrix::repmat(0.5, x.size());
-
     Ef = SXFunction(nlpIn("x", x, "p", p), nlpOut("f", E));
     Ef.init();
     Egradf = Ef.gradient(NL_X, NL_F);
     Egradf.init();
-
-//    nlp = NlpSolver("ipopt", Ef);
-//
-//    nlp.setOption("sb", "yes");
-//    nlp.setOption("verbose", false);
-//    nlp.setOption("print_level", 0);
-//    nlp.setOption("print_time", 0);
-//    nlp.setOption("hessian_approximation", "limited-memory");
-//
-//    nlp.init();
-//
-//    nlp.setInput(lb, "lbx");
-//    nlp.setInput(ub, "ubx");
-//    nlp.setInput(x0, "x0");
 
 }
 
@@ -1027,37 +1057,19 @@ double GroundStateProblem::E(const vector<double>& f, vector<double>& grad) {
     return E;
 }
 
-void GroundStateProblem::setParameters(/*double U0, vector<double>& dU, vector<double>& J,*/double W_, vector<double>& xi_,  double mu) {
+void GroundStateProblem::setParameters(/*double U0, vector<double>& dU, vector<double>& J,*/double W_, vector<double>& xi_, double mu) {
     params.clear();
     params.push_back(W_);
     for (double xii : xi_) params.push_back(xii);
-//    params.push_back(U0);
-//    params.insert(params.end(), dU.begin(), dU.end());
-//    params.insert(params.end(), J.begin(), J.end());
+    //    params.push_back(U0);
+    //    params.insert(params.end(), dU.begin(), dU.end());
+    //    params.insert(params.end(), J.begin(), J.end());
     params.push_back(mu);
     params.push_back(0);
 }
 
 void GroundStateProblem::setTheta(double theta) {
     params.back() = theta;
-}
-
-double GroundStateProblem::solve(vector<double>& f) {
-//    nlp.setInput(params, "p");
-//
-//    nlp.evaluate();
-//
-//    Dictionary& stats = const_cast<Dictionary&> (nlp.getStats());
-//    status = stats["return_status"].toString();
-//    runtime = stats["t_mainloop"].toDouble();
-//
-//    DMatrix xout = nlp.output("x");
-//    f.resize(xout.size());
-//    for (int i = 0; i < xout.size(); i++) {
-//        f[i] = xout.at(i);
-//    }
-//    return nlp.output("f").getValue();
-    return 0;
 }
 
 SX GroundStateProblem::energy() {
