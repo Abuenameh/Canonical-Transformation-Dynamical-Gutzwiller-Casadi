@@ -9,6 +9,11 @@ double energyfunc(const vector<double>& x, vector<double>& grad, void *data) {
     return prob->E(x, grad);
 }
 
+double energyfunc2(const vector<double>& x, vector<double>& grad, void *data) {
+    DynamicsProblem* prob = static_cast<DynamicsProblem*> (data);
+    return prob->E(x, grad);
+}
+
 SX JW(SX W) {
     return alpha * (W * W) / (Ng * Ng + W * W);
 }
@@ -449,11 +454,19 @@ DynamicsProblem::DynamicsProblem() {
     params.push_back(tau);
     for (SX sx : xi) params.push_back(sx);
     params.push_back(mu);
+    
+    vector<SX> gsparams(params.begin(), params.end());
+    gsparams.push_back(t);
 
+    SX E = energy();
+    SX S = canonical();
     complex<SX> HSc = HS();
+    
+    SX GSE = E;
 
     x = SX::sym("x", fin.size());
     p = SX::sym("p", params.size());
+    gsp = SX::sym("gsp", gsparams.size());
 
     vector<SX> xs;
     for (int i = 0; i < x.size(); i++) {
@@ -463,9 +476,25 @@ DynamicsProblem::DynamicsProblem() {
     for (int i = 0; i < p.size(); i++) {
         ps.push_back(p.at(i));
     }
+    vector<SX> gsps;
+    for (int i = 0; i < gsp.size(); i++) {
+        gsps.push_back(gsp.at(i));
+    }
+    
+    GSE = substitute(vector<SX>{GSE}, fin, xs)[0];
+    GSE = substitute(vector<SX>{GSE}, gsparams, gsps)[0];
+    simplify(GSE);
 
-    SX HSr = HSc.real();
-    SX HSi = HSc.imag();
+    Ef = SXFunction(nlpIn("x", x, "p", gsp), nlpOut("f", GSE));
+    Ef.init();
+    Egradf = Ef.gradient(NL_X, NL_F);
+    Egradf.init();
+
+
+//    SX HSr = HSc.real();
+//    SX HSi = HSc.imag();
+    SX HSr = S;//HSc.real();
+    SX HSi = -E;//HSc.imag();
     HSr = substitute(vector<SX>{HSr}, fin, xs)[0];
     HSr = substitute(vector<SX>{HSr}, params, ps)[0];
     HSi = substitute(vector<SX>{HSi}, fin, xs)[0];
@@ -494,14 +523,19 @@ DynamicsProblem::DynamicsProblem() {
     integrator = new CvodesInterface(ode_func, g);
     integrator->setOption("max_num_steps", 100000);
     integrator->init();
+    
+    lopt = new opt(LD_LBFGS, 2*L*dim);
+    lopt->set_lower_bounds(-1);
+    lopt->set_upper_bounds(1);
+    lopt->set_min_objective(energyfunc2, this);
 
     gsprob = new GroundStateProblem();
 }
 
-string DynamicsProblem::getRuntime() {
-    time_period period(start_time, stop_time);
-    return to_simple_string(period.length());
-}
+//string DynamicsProblem::getRuntime() {
+//    time_period period(start_time, stop_time);
+//    return to_simple_string(period.length());
+//}
 
 void DynamicsProblem::setParameters(double Wi_, double Wf_, double tau_, vector<double>& xi_, double mu) {
     gsprob->setParameters(Wi_, xi_, mu);
@@ -515,6 +549,9 @@ void DynamicsProblem::setParameters(double Wi_, double Wf_, double tau_, vector<
     integrator->setOption("t0", 0);
     integrator->setOption("tf", 2 * tau_);
     integrator->init();
+    
+    gsparams = vector<double>(params.begin(), params.end());
+    gsparams.push_back(0);
 
     tf = 2 * tau_;
 
@@ -554,26 +591,66 @@ void DynamicsProblem::setInitial(vector<double>& f0) {
     }
 }
 
-void DynamicsProblem::evolve() {
-    integrator->setInput(x0, INTEGRATOR_X0);
-    integrator->setInput(params, INTEGRATOR_P);
-    integrator->evaluate();
-    DMatrix xf = integrator->output(INTEGRATOR_XF);
-    //      cout << xf << endl;
-    vector<double> ff;
-    for (int i = 0; i < 2 * L * dim; i++) {
-        ff.push_back(xf[i].getValue());
+void DynamicsProblem::solve() {
+    double E0;
+    try {
+        start_time = microsec_clock::local_time();
+        enum result res = lopt->optimize(x0, E0);
+        stop_time = microsec_clock::local_time();
+        gsresult = to_string(res);
+    }
+    catch (std::exception& e) {
+        stop_time = microsec_clock::local_time();
+        enum result res = lopt->last_optimize_result();
+        gsresult = to_string(res) + ": " + e.what();
+        cerr << e.what() << endl;
     }
 
+    vector<complex<double>> fi(dim);
+    for (int i = 0; i < L; i++) {
+        for (int n = 0; n <= nmax; n++) {
+            fi[n] = complex<double>(x0[2 * (i * dim + n)], x0[2 * (i * dim + n) + 1]);
+        }
+        double nrm = sqrt(abs(dot(fi, fi)));
+        for (int n = 0; n <= nmax; n++) {
+            x0[2 * (i * dim + n)] /= nrm;
+            x0[2 * (i * dim + n) + 1] /= nrm;
+        }
+    }
+
+    time_period period(start_time, stop_time);
+    gsruntime = to_simple_string(period.length());
+//    cout << "gs: " << gsruntime << endl;
+}
+
+void DynamicsProblem::evolve() {
+        start_time = microsec_clock::local_time();
+        ptime eval_start_time = microsec_clock::local_time();
+    integrator->setInput(x0, INTEGRATOR_X0);
+    integrator->setInput(params, INTEGRATOR_P);
+//    integrator->evaluate();
+//    DMatrix xf = integrator->output(INTEGRATOR_XF);
+        ptime eval_stop_time = microsec_clock::local_time();
+    time_period eval_period(eval_start_time, eval_stop_time);
+//    cout << "evaluate: " << to_simple_string(eval_period.length()) << endl;
+    //      cout << xf << endl;
+//    vector<double> ff;
+//    for (int i = 0; i < 2 * L * dim; i++) {
+//        ff.push_back(xf[i].getValue());
+//    }
+
     vector<double> grad;
-    double E0 = gsprob->E(x0, grad);
-    double E1 = gsprob->E(ff, grad);
+//    double E0 = gsprob->E(x0, grad);
+//    double E1 = gsprob->E(ff, grad);
+    double E0 = E(x0, 0);
+//    double E1 = E(ff, tf);
 //    cout << E0 << endl;
 //    cout << E1 << endl;
-    cout << "Q = " << E1 - E0 << endl;
+//    cout << "Q = " << E1 - E0 << endl;
 
     vector<double> bv;
 
+        ptime int_start_time = microsec_clock::local_time();
     integrator->reset();
     int npoints = 100;
     for (int j = 0; j < npoints; j++) {
@@ -607,6 +684,38 @@ void DynamicsProblem::evolve() {
         bv.push_back(bsi[0]);
     }
     cout << bv << endl;
+    
+        integrator->integrate(tf);
+    DMatrix xf = integrator->output(INTEGRATOR_XF);
+    vector<double> ff;
+    for (int i = 0; i < 2 * L * dim; i++) {
+        ff.push_back(xf[i].getValue());
+    }
+//        vector<vector<complex<double>>> ffi(L, vector<complex<double>>(dim));
+//    
+//        for (int i = 0; i < L; i++) {
+//            for (int n = 0; n <= nmax; n++) {
+//                ffi[i][n] = complex<double>(ff[2 * (i * dim + n)], ff[2 * (i * dim + n) + 1]);
+//            }
+//            double nrm = sqrt(abs(dot(ffi[i], ffi[i])));
+//            for (int n = 0; n <= nmax; n++) {
+//                ffi[i][n] /= nrm;
+//                ff[2 * (i * dim + n)] /= nrm;
+//                ff[2 * (i * dim + n) + 1] /= nrm;
+//            }
+//        }
+//    cout << ff << endl;
+    double E1 = E(ff, tf);
+//    cout << E0 << endl;
+//    cout << E1 << endl;
+    cout << "Q = " << E1 - E0 << endl;
+
+    ptime int_stop_time = microsec_clock::local_time();
+    time_period int_period(int_start_time, int_stop_time);
+//    cout << "intergrate: " << to_simple_string(int_period.length()) << endl;
+    stop_time = microsec_clock::local_time();
+    time_period period(start_time, stop_time);
+    runtime = to_simple_string(period.length());
 
         vector<vector<complex<double>>> fiv(L, vector<complex<double>>(dim));
         vector<vector<complex<double>>> ffv(L, vector<complex<double>>(dim));
@@ -671,6 +780,27 @@ void DynamicsProblem::evolve() {
     //    }
     //    cout << bsi << endl;
     //    cout << bsf << endl;
+}
+
+double DynamicsProblem::E(const vector<double>& f, vector<double>& grad) {
+    double E = 0;
+    Ef.setInput(f.data(), NL_X);
+    Ef.setInput(gsparams.data(), NL_P);
+    Ef.evaluate();
+    Ef.getOutput(E, NL_F);
+    if (!grad.empty()) {
+        Egradf.setInput(f.data(), NL_X);
+        Egradf.setInput(gsparams.data(), NL_P);
+        Egradf.evaluate();
+        Egradf.output().getArray(grad.data(), grad.size(), DENSE);
+    }
+    return E;
+}
+
+double DynamicsProblem::E(const vector<double>& f, double t) {
+    gsparams.back() = t;
+    vector<double> g;
+    return E(f, g);
 }
 
 complex<SX> DynamicsProblem::HS() {
@@ -985,6 +1115,343 @@ complex<SX> DynamicsProblem::HS() {
     //    return -complex<SX>(0, 1)*E + S; 
 
     //    return E.real();// - (complex<SX>(0, 1) * S).real();
+}
+
+SX DynamicsProblem::energy() {
+
+    complex<SX> expth = complex<SX>(1, 0);//complex<SX>(cos(theta), sin(theta));
+    complex<SX> expmth = ~expth;
+    complex<SX> exp2th = expth*expth;
+    complex<SX> expm2th = ~exp2th;
+
+    vector<complex<SX>* > f(L);
+    vector<SX> norm2(L, 0);
+    for (int i = 0; i < L; i++) {
+        f[i] = reinterpret_cast<complex<SX>*> (&fin[2 * i * dim]);
+        for (int n = 0; n <= nmax; n++) {
+            norm2[i] += f[i][n].real() * f[i][n].real() + f[i][n].imag() * f[i][n].imag();
+        }
+    }
+
+    complex<SX> E = complex<SX>(0, 0);
+
+    complex<SX> Ei, Ej1, Ej2, Ej1j2, Ej1k1, Ej2k2;
+
+    for (int i = 0; i < L; i++) {
+
+        int k1 = mod(i - 2);
+        int j1 = mod(i - 1);
+        int j2 = mod(i + 1);
+        int k2 = mod(i + 2);
+
+        Ei = complex<SX>(0, 0);
+        Ej1 = complex<SX>(0, 0);
+        Ej2 = complex<SX>(0, 0);
+        Ej1j2 = complex<SX>(0, 0);
+        Ej1k1 = complex<SX>(0, 0);
+        Ej2k2 = complex<SX>(0, 0);
+
+        for (int n = 0; n <= nmax; n++) {
+            Ei += (0.5 * (U0 + dU[i]) * n * (n - 1) - mu * n) * ~f[i][n] * f[i][n];
+
+            if (n < nmax) {
+                Ej1 += -J[j1] * expth * g(n, n + 1) * ~f[i][n + 1] * ~f[j1][n]
+                        * f[i][n] * f[j1][n + 1];
+                Ej2 += -J[i] * expmth * g(n, n + 1) * ~f[i][n + 1] * ~f[j2][n] * f[i][n]
+                        * f[j2][n + 1];
+
+                if (n > 0) {
+                    Ej1 += 0.5 * J[j1] * J[j1] * exp2th * g(n, n) * g(n - 1, n + 1) * (1 / eps(U0, n, n))
+                            * ~f[i][n + 1] * ~f[j1][n - 1] * f[i][n - 1] * f[j1][n + 1];
+                    Ej2 += 0.5 * J[i] * J[i] * expm2th * g(n, n) * g(n - 1, n + 1) * (1 / eps(U0, n, n))
+                            * ~f[i][n + 1] * ~f[j2][n - 1] * f[i][n - 1] * f[j2][n + 1];
+                }
+                if (n < nmax - 1) {
+                    Ej1 -= 0.5 * J[j1] * J[j1] * exp2th * g(n, n + 2) * g(n + 1, n + 1) * (1 / eps(U0, n, n + 2))
+                            * ~f[i][n + 2] * ~f[j1][n] * f[i][n] * f[j1][n + 2];
+                    Ej2 -= 0.5 * J[i] * J[i] * expm2th * g(n, n + 2) * g(n + 1, n + 1) * (1 / eps(U0, n, n + 2))
+                            * ~f[i][n + 2] * ~f[j2][n] * f[i][n] * f[j2][n + 2];
+                }
+
+                if (n > 1) {
+                    Ej1 += -J[j1] * J[j1] * exp2th * g(n, n - 1) * g(n - 1, n)
+                            * (eps(dU, i, j1, n, n - 1, i, j1, n - 1, n) / (eps(U0, n, n - 1)*(eps(U0, n, n - 1) + eps(U0, n - 1, n))))
+                            * ~f[i][n + 1] * ~f[j1][n - 2] * f[i][n - 1] * f[j1][n];
+                    Ej2 += -J[i] * J[i] * expm2th * g(n, n - 1) * g(n - 1, n)
+                            * (eps(dU, i, j2, n, n - 1, i, j2, n - 1, n) / (eps(U0, n, n - 1)*(eps(U0, n, n - 1) + eps(U0, n - 1, n))))
+                            * ~f[i][n + 1] * ~f[j2][n - 2] * f[i][n - 1] * f[j2][n];
+                }
+                if (n < nmax - 2) {
+                    Ej1 -= -J[j1] * J[j1] * exp2th * g(n, n + 3) * g(n + 1, n + 2)
+                            * (eps(dU, i, j1, n, n + 3, i, j1, n + 1, n + 2) / (eps(U0, n, n + 3)*(eps(U0, n, n + 3) + eps(U0, n + 1, n + 2))))
+                            * ~f[i][n + 2] * ~f[j1][n + 1] * f[i][n] * f[j1][n + 3];
+                    Ej2 -= -J[i] * J[i] * expm2th * g(n, n + 3) * g(n + 1, n + 2)
+                            * (eps(dU, i, j2, n, n + 3, i, j2, n + 1, n + 2) / (eps(U0, n, n + 3)*(eps(U0, n, n + 3) + eps(U0, n + 1, n + 2))))
+                            * ~f[i][n + 2] * ~f[j2][n + 1] * f[i][n] * f[j2][n + 3];
+                }
+
+                for (int m = 1; m <= nmax; m++) {
+                    if (n != m - 1) {
+                        Ej1 += 0.5 * J[j1] * J[j1] * g(n, m) * g(m - 1, n + 1) * (1 / eps(U0, n, m))
+                                * (~f[i][n + 1] * ~f[j1][m - 1] * f[i][n + 1] * f[j1][m - 1] -
+                                ~f[i][n] * ~f[j1][m] * f[i][n] * f[j1][m]);
+                        Ej2 += 0.5 * J[i] * J[i] * g(n, m) * g(m - 1, n + 1) * (1 / eps(U0, n, m))
+                                * (~f[i][n + 1] * ~f[j2][m - 1] * f[i][n + 1] * f[j2][m - 1] -
+                                ~f[i][n] * ~f[j2][m] * f[i][n] * f[j2][m]);
+
+                        Ej1 += J[j1] * expth * g(n, m) * (eps(dU, i, j1, n, m) / eps(U0, n, m))
+                                * ~f[i][n + 1] * ~f[j1][m - 1] * f[i][n] * f[j1][m];
+                        Ej2 += J[i] * expmth * g(n, m) * (eps(dU, i, j2, n, m) / eps(U0, n, m))
+                                * ~f[i][n + 1] * ~f[j2][m - 1] * f[i][n] * f[j2][m];
+
+                        if (n != m - 3 && m > 1 && n < nmax - 1) {
+                            Ej1 += -0.5 * J[j1] * J[j1] * exp2th * g(n, m) * g(n + 1, m - 1)
+                                    * (eps(dU, i, j1, n, m) / (eps(U0, n, m) * eps(U0, n + 1, m - 1)))
+                                    * ~f[i][n + 2] * ~f[j1][m - 2] * f[i][n] * f[j1][m];
+                            Ej2 += -0.5 * J[i] * J[i] * expm2th * g(n, m) * g(n + 1, m - 1)
+                                    * (eps(dU, i, j2, n, m) / (eps(U0, n, m) * eps(U0, n + 1, m - 1)))
+                                    * ~f[i][n + 2] * ~f[j2][m - 2] * f[i][n] * f[j2][m];
+                        }
+                        if (n != m + 1 && n > 0 && m < nmax) {
+                            Ej1 -= -0.5 * J[j1] * J[j1] * exp2th * g(n, m) * g(n - 1, m + 1)
+                                    * (eps(dU, i, j1, n, m) / (eps(U0, n, m) * eps(U0, n - 1, m + 1)))
+                                    * ~f[i][n + 1] * ~f[j1][m - 1] * f[i][n - 1] * f[j1][m + 1];
+                            Ej2 -= -0.5 * J[i] * J[i] * expm2th * g(n, m) * g(n - 1, m + 1)
+                                    * (eps(dU, i, j2, n, m) / (eps(U0, n, m) * eps(U0, n - 1, m + 1)))
+                                    * ~f[i][n + 1] * ~f[j2][m - 1] * f[i][n - 1] * f[j2][m + 1];
+                        }
+
+                        if (n > 0) {
+                            Ej1j2 += -J[j1] * J[i] * g(n, m) * g(n - 1, n)
+                                    * (eps(dU, i, j1, n, m, i, j2, n - 1, n) / (eps(U0, n, m) * (eps(U0, n, m) + eps(U0, n - 1, n))))
+                                    * ~f[i][n + 1] * ~f[j1][m - 1] * ~f[j2][n - 1]
+                                    * f[i][n - 1] * f[j1][m] * f[j2][n];
+                            Ej1j2 += -J[i] * J[j1] * g(n, m) * g(n - 1, n)
+                                    * (eps(dU, i, j2, n, m, i, j1, n - 1, n) / (eps(U0, n, m) * (eps(U0, n, m) + eps(U0, n - 1, n))))
+                                    * ~f[i][n + 1] * ~f[j2][m - 1] * ~f[j1][n - 1]
+                                    * f[i][n - 1] * f[j2][m] * f[j1][n];
+                        }
+                        if (n < nmax - 1) {
+                            Ej1j2 -= -J[j1] * J[i] * g(n, m) * g(n + 1, n + 2)
+                                    * (eps(dU, i, j1, n, m, i, j2, n + 1, n + 2) / (eps(U0, n, m) * (eps(U0, n, m) + eps(U0, n + 1, n + 2))))
+                                    * ~f[i][n + 2] * ~f[j1][m - 1] * ~f[j2][n + 1]
+                                    * f[i][n] * f[j1][m] * f[j2][n + 2];
+                            Ej1j2 -= -J[i] * J[j1] * g(n, m) * g(n + 1, n + 2)
+                                    * (eps(dU, i, j2, n, m, i, j1, n + 1, n + 2) / (eps(U0, n, m) * (eps(U0, n, m) + eps(U0, n + 1, n + 2))))
+                                    * ~f[i][n + 2] * ~f[j2][m - 1] * ~f[j1][n + 1]
+                                    * f[i][n] * f[j2][m] * f[j1][n + 2];
+                        }
+
+                        Ej1 += -0.5 * J[j1] * J[j1] * g(n, m) * g(m - 1, n + 1)
+                                * (eps(dU, i, j1, n, m) / (eps(U0, n, m) * eps(U0, m - 1, n + 1)))
+                                * (~f[i][n] * ~f[j1][m] * f[i][n] * f[j1][m] -
+                                ~f[i][n + 1] * ~f[j1][m - 1] * f[i][n + 1] * f[j1][m - 1]);
+                        Ej2 += -0.5 * J[i] * J[i] * g(n, m) * g(m - 1, n + 1)
+                                * (eps(dU, i, j2, n, m) / (eps(U0, n, m) * eps(U0, m - 1, n + 1)))
+                                * (~f[i][n] * ~f[j2][m] * f[i][n] * f[j2][m] -
+                                ~f[i][n + 1] * ~f[j2][m - 1] * f[i][n + 1] * f[j2][m - 1]);
+
+                        for (int q = 1; q <= nmax; q++) {
+                            if (n < nmax - 1 && n != q - 2) {
+                                Ej1j2 += -0.5 * J[j1] * J[i] * g(n, m) * g(n + 1, q)
+                                        * (eps(dU, i, j1, n, m) / (eps(U0, n, m) * eps(U0, n + 1, q)))
+                                        * ~f[i][n + 2] * ~f[j1][m - 1] * ~f[j2][q - 1]
+                                        * f[i][n] * f[j1][m] * f[j2][q];
+                                Ej1j2 += -0.5 * J[i] * J[j1] * g(n, m) * g(n + 1, q)
+                                        * (eps(dU, i, j2, n, m) / (eps(U0, n, m) * eps(U0, n + 1, q)))
+                                        * ~f[i][n + 2] * ~f[j2][m - 1] * ~f[j1][q - 1]
+                                        * f[i][n] * f[j2][m] * f[j1][q];
+                            }
+                            if (n > 0 && n != q) {
+                                Ej1j2 -= -0.5 * J[j1] * J[i] * g(n, m) * g(n - 1, q)
+                                        * (eps(dU, i, j1, n, m) / (eps(U0, n, m) * eps(U0, n - 1, q)))
+                                        * ~f[i][n + 1] * ~f[j1][m - 1] * ~f[j2][q - 1]
+                                        * f[i][n - 1] * f[j1][m] * f[j2][q];
+                                Ej1j2 -= -0.5 * J[i] * J[j1] * g(n, m) * g(n - 1, q)
+                                        * (eps(dU, i, j2, n, m) / (eps(U0, n, m) * eps(U0, n - 1, q)))
+                                        * ~f[i][n + 1] * ~f[j2][m - 1] * ~f[j1][q - 1]
+                                        * f[i][n - 1] * f[j2][m] * f[j1][q];
+                            }
+
+                            if (m != q) {
+                                Ej1k1 += -0.5 * J[j1] * J[k1] * exp2th * g(n, m) * g(m - 1, q)
+                                        * (eps(dU, i, j1, n, m) / (eps(U0, n, m) * eps(U0, m - 1, q)))
+                                        * ~f[i][n + 1] * ~f[j1][m] * ~f[k1][q - 1]
+                                        * f[i][n] * f[j1][m] * f[k1][q];
+                                Ej2k2 += -0.5 * J[i] * J[j2] * expm2th * g(n, m) * g(m - 1, q)
+                                        * (eps(dU, i, j2, n, m) / (eps(U0, n, m) * eps(U0, m - 1, q)))
+                                        * ~f[i][n + 1] * ~f[j2][m] * ~f[k2][q - 1]
+                                        * f[i][n] * f[j2][m] * f[k2][q];
+                                Ej1k1 -= -0.5 * J[j1] * J[k1] * exp2th * g(n, m) * g(m - 1, q)
+                                        * (eps(dU, i, j1, n, m) / (eps(U0, n, m) * eps(U0, m - 1, q)))
+                                        * ~f[i][n + 1] * ~f[j1][m - 1] * ~f[k1][q - 1]
+                                        * f[i][n] * f[j1][m - 1] * f[k1][q];
+                                Ej2k2 -= -0.5 * J[i] * J[j2] * expm2th * g(n, m) * g(m - 1, q)
+                                        * (eps(dU, i, j2, n, m) / (eps(U0, n, m) * eps(U0, m - 1, q)))
+                                        * ~f[i][n + 1] * ~f[j2][m - 1] * ~f[k2][q - 1]
+                                        * f[i][n] * f[j2][m - 1] * f[k2][q];
+                            }
+
+                        }
+
+                        for (int p = 0; p < nmax; p++) {
+
+                            if (p != n - 1 && 2 * n - m == p && n > 0) {
+                                Ej1j2 += 0.5 * J[j1] * J[i] * g(n, m) * g(n - 1, p + 1) * (1 / eps(U0, n, m))
+                                        * ~f[i][n + 1] * ~f[j1][m - 1] * ~f[j2][p]
+                                        * f[i][n - 1] * f[j1][m] * f[j2][p + 1];
+                                Ej1j2 += 0.5 * J[j1] * J[i] * g(n, m) * g(n - 1, p + 1) * (1 / eps(U0, n, m))
+                                        * ~f[i][n + 1] * ~f[j2][m - 1] * ~f[j1][p]
+                                        * f[i][n - 1] * f[j2][m] * f[j1][p + 1];
+                            }
+                            if (p != n + 1 && 2 * n - m == p - 2 && n < nmax - 1) {
+                                Ej1j2 -= 0.5 * J[j1] * J[i] * g(n, m) * g(n + 1, p + 1) * (1 / eps(U0, n, m))
+                                        * ~f[i][n + 2] * ~f[j1][m - 1] * ~f[j2][p]
+                                        * f[i][n] * f[j1][m] * f[j2][p + 1];
+                                Ej1j2 -= 0.5 * J[j1] * J[i] * g(n, m) * g(n + 1, p + 1) * (1 / eps(U0, n, m))
+                                        * ~f[i][n + 2] * ~f[j2][m - 1] * ~f[j1][p]
+                                        * f[i][n] * f[j2][m] * f[j1][p + 1];
+                            }
+
+                            if (p != n - 1 && 2 * n - m != p && n > 0) {
+                                Ej1j2 += -0.25 * J[j1] * J[i] * g(n, m) * g(n - 1, p + 1)
+                                        * (eps(dU, i, j1, n, m, i, j2, p, n) / (eps(U0, n, m)*(eps(U0, n, m) + eps(U0, n - 1, p + 1))))
+                                        * ~f[i][n + 1] * ~f[j1][m - 1] * ~f[j2][p]
+                                        * f[i][n - 1] * f[j1][m] * f[j2][p + 1];
+                                Ej1j2 += -0.25 * J[i] * J[j1] * g(n, m) * g(n - 1, p + 1)
+                                        * (eps(dU, i, j2, n, m, i, j1, p, n) / (eps(U0, n, m)*(eps(U0, n, m) + eps(U0, n - 1, p + 1))))
+                                        * ~f[i][n + 1] * ~f[j2][m - 1] * ~f[j1][p]
+                                        * f[i][n - 1] * f[j2][m] * f[j1][p + 1];
+                            }
+                            if (p != n + 1 && 2 * n - m != p - 2 && n < nmax - 1) {
+                                Ej1j2 -= -0.25 * J[j1] * J[i] * g(n, m) * g(n + 1, p + 1)
+                                        * (eps(dU, i, j1, n, m, i, j2, p, n + 2) / (eps(U0, n, m)*(eps(U0, n, m) + eps(U0, n + 1, p + 1))))
+                                        * ~f[i][n + 2] * ~f[j1][m - 1] * ~f[j2][p]
+                                        * f[i][n] * f[j1][m] * f[j2][p + 1];
+                                Ej1j2 -= -0.25 * J[i] * J[j1] * g(n, m) * g(n + 1, p + 1)
+                                        * (eps(dU, i, j2, n, m, i, j1, p, n + 2) / (eps(U0, n, m)*(eps(U0, n, m) + eps(U0, n + 1, p + 1))))
+                                        * ~f[i][n + 2] * ~f[j2][m - 1] * ~f[j1][p]
+                                        * f[i][n] * f[j2][m] * f[j1][p + 1];
+                            }
+
+                            if (p != m - 1 && n != p) {
+                                Ej1k1 += -0.25 * J[j1] * J[k1] * exp2th * g(n, m) * g(m - 1, p + 1)
+                                        * (eps(dU, i, j1, n, m, j1, k1, p, m) / (eps(U0, n, m)*(eps(U0, n, m) + eps(U0, m - 1, p + 1))))
+                                        * (~f[i][n + 1] * ~f[j1][m - 1] * ~f[k1][p] * f[i][n] * f[j1][m - 1] * f[k1][p + 1] -
+                                        ~f[i][n + 1] * ~f[j1][m] * ~f[k1][p] * f[i][n] * f[j1][m] * f[k1][p + 1]);
+                                Ej2k2 += -0.25 * J[i] * J[j2] * expm2th * g(n, m) * g(m - 1, p + 1)
+                                        * (eps(dU, i, j2, n, m, j2, k2, p, m) / (eps(U0, n, m)*(eps(U0, n, m) + eps(U0, m - 1, p + 1))))
+                                        * (~f[i][n + 1] * ~f[j2][m - 1] * ~f[k2][p] * f[i][n] * f[j2][m - 1] * f[k2][p + 1] -
+                                        ~f[i][n + 1] * ~f[j2][m] * ~f[k2][p] * f[i][n] * f[j2][m] * f[k2][p + 1]);
+                            }
+                        }
+
+                        Ej1k1 += 0.5 * J[j1] * J[k1] * exp2th * g(n, m) * g(m - 1, n + 1)*(1 / eps(U0, n, m))
+                                * (~f[i][n + 1] * ~f[j1][m - 1] * ~f[k1][n]
+                                * f[i][n] * f[j1][m - 1] * f[k1][n + 1] -
+                                ~f[i][n + 1] * ~f[j1][m] * ~f[k1][n]
+                                * f[i][n] * f[j1][m] * f[k1][n + 1]);
+                        Ej2k2 += 0.5 * J[j2] * J[i] * expm2th * g(n, m) * g(m - 1, n + 1)*(1 / eps(U0, n, m))
+                                * (~f[i][n + 1] * ~f[j2][m - 1] * ~f[k2][n]
+                                * f[i][n] * f[j2][m - 1] * f[k2][n + 1] -
+                                ~f[i][n + 1] * ~f[j2][m] * ~f[k2][n]
+                                * f[i][n] * f[j2][m] * f[k2][n + 1]);
+
+                        Ej1k1 += -J[j1] * J[k1] * exp2th * g(n, m) * g(m - 1, m)
+                                * (eps(dU, i, j1, n, m, j1, k1, m - 1, m) / (eps(U0, n, m)*(eps(U0, n, m) + eps(U0, m - 1, m))))
+                                * (~f[i][n + 1] * ~f[j1][m - 1] * ~f[k1][m - 1] * f[i][n] * f[j1][m - 1] * f[k1][m] -
+                                ~f[i][n + 1] * ~f[j1][m] * ~f[k1][m - 1] * f[i][n] * f[j1][m] * f[k1][m]);
+                        Ej2k2 += -J[i] * J[j2] * expm2th * g(n, m) * g(m - 1, m)
+                                * (eps(dU, i, j2, n, m, j2, k2, m - 1, m) / (eps(U0, n, m)*(eps(U0, n, m) + eps(U0, m - 1, m))))
+                                * (~f[i][n + 1] * ~f[j2][m - 1] * ~f[k2][m - 1] * f[i][n] * f[j2][m - 1] * f[k2][m] -
+                                ~f[i][n + 1] * ~f[j2][m] * ~f[k2][m - 1] * f[i][n] * f[j2][m] * f[k2][m]);
+
+                        if (m != n - 1 && n != m && m < nmax && n > 0) {
+                            Ej1 += -0.25 * J[j1] * J[j1] * exp2th * g(n, m) * g(n - 1, m + 1)
+                                    * (eps(dU, i, j1, n, m, i, j1, m, n) / (eps(U0, n, m)*(eps(U0, n, m) + eps(U0, n - 1, m + 1))))
+                                    * ~f[i][n + 1] * ~f[j1][m - 1] * f[i][n - 1] * f[j1][m + 1];
+                            Ej2 += -0.25 * J[i] * J[i] * expm2th * g(n, m) * g(n - 1, m + 1)
+                                    * (eps(dU, i, j2, n, m, i, j2, m, n) / (eps(U0, n, m)*(eps(U0, n, m) + eps(U0, n - 1, m + 1))))
+                                    * ~f[i][n + 1] * ~f[j2][m - 1] * f[i][n - 1] * f[j2][m + 1];
+                        }
+                        if (n != m - 3 && n != m - 2 && n < nmax - 1 && m > 1) {
+                            Ej1 -= -0.25 * J[j1] * J[j1] * exp2th * g(n, m) * g(n + 1, m - 1)
+                                    * (eps(dU, i, j1, n, m, i, j1, m - 2, n + 2) / (eps(U0, n, m)*(eps(U0, n, m) + eps(U0, n + 1, m - 1))))
+                                    * ~f[i][n + 2] * ~f[j1][m - 2] * f[i][n] * f[j1][m];
+                            Ej2 -= -0.25 * J[i] * J[i] * expm2th * g(n, m) * g(n + 1, m - 1)
+                                    * (eps(dU, i, j2, n, m, i, j2, m - 2, n + 2) / (eps(U0, n, m)*(eps(U0, n, m) + eps(U0, n + 1, m - 1))))
+                                    * ~f[i][n + 2] * ~f[j2][m - 2] * f[i][n] * f[j2][m];
+                        }
+                    }
+                }
+            }
+        }
+
+        Ei /= norm2[i];
+        Ej1 /= norm2[i] * norm2[j1];
+        Ej2 /= norm2[i] * norm2[j2];
+        Ej1j2 /= norm2[i] * norm2[j1] * norm2[j2];
+        Ej1k1 /= norm2[i] * norm2[j1] * norm2[k1];
+        Ej2k2 /= norm2[i] * norm2[j2] * norm2[k2];
+
+        E += Ei;
+        E += Ej1;
+        E += Ej2;
+        E += Ej1j2;
+        E += Ej1k1;
+        E += Ej2k2;
+    }
+
+    return E.real();
+}
+
+SX DynamicsProblem::canonical() {
+
+    vector<complex<SX>* > f(L);
+    vector<SX> norm2(L, 0);
+    for (int i = 0; i < L; i++) {
+        f[i] = reinterpret_cast<complex<SX>*> (&fin[2 * i * dim]);
+        for (int n = 0; n <= nmax; n++) {
+            norm2[i] += f[i][n].real() * f[i][n].real() + f[i][n].imag() * f[i][n].imag();
+        }
+    }
+
+    complex<SX> S = complex<SX>(0, 0);
+
+    complex<SX> Sj1, Sj2;
+
+    for (int i = 0; i < L; i++) {
+
+        int k1 = mod(i - 2);
+        int j1 = mod(i - 1);
+        int j2 = mod(i + 1);
+        int k2 = mod(i + 2);
+
+        Sj1 = complex<SX>(0, 0);
+        Sj2 = complex<SX>(0, 0);
+
+        for (int n = 0; n <= nmax; n++) {
+            if (n < nmax) {
+                for (int m = 1; m <= nmax; m++) {
+                    if (n != m - 1) {
+                        Sj1 += -Jp[j1] * g(n, m) * (1 / eps(U0, n, m))
+                                * ~f[i][n + 1] * ~f[j1][m - 1] * f[i][n] * f[j1][m];
+                        Sj2 += -Jp[i] * g(n, m) * (1 / eps(U0, n, m))
+                                * ~f[i][n + 1] * ~f[j2][m - 1] * f[i][n] * f[j2][m];
+
+                    }
+                }
+            }
+        }
+        
+        Sj1 /= norm2[i] * norm2[j1];
+        Sj2 /= norm2[i] * norm2[j2];
+
+        S += Sj1;
+        S += Sj2;
+    }
+    
+    return S.real();
 }
 
 GroundStateProblem::GroundStateProblem() {

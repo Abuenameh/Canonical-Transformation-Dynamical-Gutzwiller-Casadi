@@ -27,7 +27,7 @@ int main(int argc, char** argv) {
 
     double Wi = 2e11;
     double Wf = 1e11;
-    double tau = 1e-6;
+    double tau = 1.1e-6;
     double mu = 0.5;
     vector<double> xi(L, 1);
 
@@ -44,27 +44,31 @@ int main(int argc, char** argv) {
 
     vector<double> f0(ndim, 1);
 
-    double E0;
-    string result0;
-    try {
-        gsprob.start();
-        result res = lopt.optimize(f0, E0);
-        gsprob.stop();
-        result0 = to_string(res);
-    }
-    catch (std::exception& e) {
-        gsprob.stop();
-        result res = lopt.last_optimize_result();
-        result0 = to_string(res) + ": " + e.what();
-        cout << e.what() << endl;
-        E0 = numeric_limits<double>::quiet_NaN();
-    }
+//    double E0;
+//    string result0;
+//    try {
+//        gsprob.start();
+//        result res = lopt.optimize(f0, E0);
+//        gsprob.stop();
+//        result0 = to_string(res);
+//    }
+//    catch (std::exception& e) {
+//        gsprob.stop();
+//        result res = lopt.last_optimize_result();
+//        result0 = to_string(res) + ": " + e.what();
+//        cout << e.what() << endl;
+//        E0 = numeric_limits<double>::quiet_NaN();
+//    }
 
     DynamicsProblem prob;
     prob.setParameters(Wi, Wf, tau, xi, mu);
     //    vector<double> f0(2*L*dim, 1/sqrt(2.*dim));
     prob.setInitial(f0);
+    prob.solve();
     prob.evolve();
+    
+    cout << prob.getGSRuntime() << endl;
+    cout << prob.getRuntime() << endl;
 
     return 0;
 

@@ -17,6 +17,10 @@ using namespace casadi;
 
 using namespace boost::posix_time;
 
+#include <nlopt.hpp>
+
+using namespace nlopt;
+
 //#include <pagmo/src/pagmo.h>
 //
 //using namespace pagmo;
@@ -80,17 +84,30 @@ private:
 class DynamicsProblem {
 public:
     DynamicsProblem();
-        ~DynamicsProblem() { delete integrator; delete gsprob; }
+        ~DynamicsProblem() { delete lopt; delete integrator; delete gsprob; }
 
     //    void setParameters(double U0, vector<double>& dU, vector<double>& J, double mu);
     void setParameters(double Wi, double Wf, double tau, vector<double>& xi, double mu);
     void setInitial(vector<double>& f0);
 
+    double E(const vector<double>& f, vector<double>& grad);
+    double E(const vector<double>& f, double t);
+
+    void solve();
     void evolve();
 
-    string getRuntime();
+    vector<double> getGS() { return x0; };
+    string& getGSRuntime() { return gsruntime; }
+    string& getRuntime() { return runtime; }
 
-    void start() {
+    string& getGSResult() {
+        return gsresult;
+    }
+    string& getResult() {
+        return result;
+    }
+    void start() 
+    {
         start_time = microsec_clock::local_time();
     }
 
@@ -105,6 +122,8 @@ private:
 
     complex<SX> HS();
     SX W();
+    SX energy();
+    SX canonical();
 
     vector<SX> fin;
     SX U0;
@@ -122,6 +141,7 @@ private:
     SX t;
     SX x;
     SX p;
+    SX gsp;
 
     double tf;
 
@@ -130,22 +150,31 @@ private:
 
     double U0d;
     vector<double> Jd;
+    
+    opt* lopt;
 
     SX ode;
     SXFunction ode_func;
     CvodesInterface* integrator;
 
     vector<double> params;
+    vector<double> gsparams;
     vector<double> x0;
     
     GroundStateProblem* gsprob;
 
     SXFunction Ef;
+    Function Egradf;
 
-    double runtime;
+    string gsruntime;
+    string gsresult;
+    
+    string runtime;
+    string result;
 };
 
 double energyfunc(const vector<double>& x, vector<double>& grad, void *data);
+double energyfunc2(const vector<double>& x, vector<double>& grad, void *data);
 
 #endif	/* CASADI_HPP */
 
