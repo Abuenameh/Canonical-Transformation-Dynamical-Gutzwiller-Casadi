@@ -21,72 +21,13 @@ using namespace boost::posix_time;
 
 using namespace nlopt;
 
-//#include <pagmo/src/pagmo.h>
-//
-//using namespace pagmo;
-//using namespace pagmo::algorithm;
-//using namespace pagmo::problem;
-
 #include "gutzwiller.hpp"
-
-class GroundStateProblem {
-public:
-    GroundStateProblem();
-
-    //    void setParameters(double U0, vector<double>& dU, vector<double>& J, double mu);
-    void setParameters(double W, vector<double>& xi, double mu);
-    void setTheta(double theta);
-
-    double E(const vector<double>& f, vector<double>& grad);
-
-    string& getStatus() {
-        return status;
-    }
-    string getRuntime();
-
-    void start() {
-        start_time = microsec_clock::local_time();
-    }
-
-    void stop() {
-        stop_time = microsec_clock::local_time();
-    }
-
-private:
-
-    ptime start_time;
-    ptime stop_time;
-
-    SX energy();
-
-    vector<SX> fin;
-    SX W;
-    SX U0;
-    vector<SX> dU;
-    vector<SX> J;
-    vector<SX> xi;
-    SX mu;
-    SX theta;
-
-    SX x;
-    SX p;
-
-    vector<double> params;
-
-    SXFunction Ef;
-    Function Egradf;
-
-    string status;
-    double runtime;
-};
-
 
 class DynamicsProblem {
 public:
     DynamicsProblem();
-        ~DynamicsProblem() { delete lopt; delete integrator; delete gsprob; }
+        ~DynamicsProblem() { delete lopt; delete integrator; }
 
-    //    void setParameters(double U0, vector<double>& dU, vector<double>& J, double mu);
     void setParameters(double Wi, double Wf, double tau, vector<double>& xi, double mu);
     void setInitial(vector<double>& f0);
 
@@ -106,6 +47,13 @@ public:
     string& getResult() {
         return result;
     }
+    
+    double getQ() { return Q; }
+    double getRho() { return pd; }
+    vector<double> getBs() { return bv; }
+    double getEi() { return E0; }
+    double getEf() { return E1; }
+    
     void start() 
     {
         start_time = microsec_clock::local_time();
@@ -161,8 +109,6 @@ private:
     vector<double> gsparams;
     vector<double> x0;
     
-    GroundStateProblem* gsprob;
-
     SXFunction Ef;
     Function Egradf;
 
@@ -171,10 +117,15 @@ private:
     
     string runtime;
     string result;
+    
+    double E0;
+    double E1;
+    double Q;
+    double pd;
+    vector<double> bv;
 };
 
 double energyfunc(const vector<double>& x, vector<double>& grad, void *data);
-double energyfunc2(const vector<double>& x, vector<double>& grad, void *data);
 
 #endif	/* CASADI_HPP */
 

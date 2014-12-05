@@ -14,6 +14,7 @@ using namespace std;
 using namespace nlopt;
 
 #include "gutzwiller.hpp"
+#include "mathematica.hpp"
 #include "casadi.hpp"
 
 #include <casadi/interfaces/sundials/cvodes_interface.hpp>
@@ -22,53 +23,45 @@ using namespace nlopt;
  * 
  */
 int main(int argc, char** argv) {
-    
+
     cout << setprecision(10);
 
     double Wi = 2e11;
     double Wf = 1e11;
-    double tau = 1.1e-6;
+    double tau = 1e-6;
     double mu = 0.5;
     vector<double> xi(L, 1);
 
     int ndim = 2 * L*dim;
 
-    GroundStateProblem gsprob;
-    gsprob.setParameters(Wi, xi, mu);
-    gsprob.setTheta(0);
-
-    opt lopt(LD_LBFGS, ndim);
-    lopt.set_lower_bounds(-1);
-    lopt.set_upper_bounds(1);
-    lopt.set_min_objective(energyfunc, &gsprob);
-
     vector<double> f0(ndim, 1);
 
-//    double E0;
-//    string result0;
-//    try {
-//        gsprob.start();
-//        result res = lopt.optimize(f0, E0);
-//        gsprob.stop();
-//        result0 = to_string(res);
-//    }
-//    catch (std::exception& e) {
-//        gsprob.stop();
-//        result res = lopt.last_optimize_result();
-//        result0 = to_string(res) + ": " + e.what();
-//        cout << e.what() << endl;
-//        E0 = numeric_limits<double>::quiet_NaN();
-//    }
+    vector<double> Eiv, Efv, Qv, pv;
+    vector<vector<double>> bv;
 
     DynamicsProblem prob;
-    prob.setParameters(Wi, Wf, tau, xi, mu);
-    //    vector<double> f0(2*L*dim, 1/sqrt(2.*dim));
-    prob.setInitial(f0);
-    prob.solve();
-    prob.evolve();
+
+    for (int i = 0; i < 10; i++) {
+        prob.setParameters(Wi, Wf, tau + i * 0.1e-6, xi, mu);
+        prob.setInitial(f0);
+        prob.solve();
+        prob.evolve();
+
+        Eiv.push_back(prob.getEi());
+        Efv.push_back(prob.getEf());
+        Qv.push_back(prob.getQ());
+        pv.push_back(prob.getRho());
+        bv.push_back(prob.getBs());
+    }
     
-    cout << prob.getGSRuntime() << endl;
-    cout << prob.getRuntime() << endl;
+    cout << math(bv) << endl;
+    cout << math(Eiv) << endl;
+    cout << math(Efv) << endl;
+    cout << math(Qv) << endl;
+    cout << math(pv) << endl;
+
+    //    cout << prob.getGSRuntime() << endl;
+    //    cout << prob.getRuntime() << endl;
 
     return 0;
 
