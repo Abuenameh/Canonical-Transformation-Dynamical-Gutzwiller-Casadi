@@ -133,41 +133,13 @@ ostream& operator<<(ostream& out, const mathematica<string> m) {
     return out;
 }
 
-//ostream& operator<<(ostream& out, const mathematica<Vector>& m) {
-//    VectorRef& v = m.v;
-//    int len = v.Length();
-//    out << "{" << mathematica<Real>(v(1));
-//    for (int i = 2; i <= len; i++) {
-//        out << "," << mathematica<Real>(v(i));
-//    }
-//    out << "}";
-//    return out;
-//}
-//
-//ostream& operator<<(ostream& out, const mathematica<Matrix>& m) {
-//    MatrixRef& mat = m.v;
-//    int r = mat.Nrows();
-//    int c = mat.Ncols();
-//    out << "{{" << mathematica<Real> (mat(1,1));
-//    for (int j = 2; j <= c; j++) {
-//        out << "," << mathematica<Real> (mat(1,j));
-//    }
-//    out << "}";
-//    for (int i = 2; i <= r; i++) {
-//        out << ",{" << mathematica<Real> (mat(i,1));
-//        for (int j = 2; j <= c; j++) {
-//            out << "," << mathematica<Real> (mat(i,j));
-//        }
-//        out << "}";
-//    }
-//    out << "}";
-//    return out;
-//}
-
 template<typename T, typename Alloc>
 ostream& operator<<(ostream& out, const mathematica<deque<T, Alloc> >& m) {
     deque<T, Alloc>& d = m.v;
-    out << "{" << mathematica<T > (d[0]);
+    out << "{";
+    if (d.size() > 0) {
+        out << mathematica<T > (d[0]);
+    }
     for (int i = 1; i < d.size(); i++) {
         out << "," << mathematica<T > (d[i]);
     }
@@ -178,7 +150,10 @@ ostream& operator<<(ostream& out, const mathematica<deque<T, Alloc> >& m) {
 template<typename T, typename Alloc>
 ostream& operator<<(ostream& out, const mathematica<vector<T, Alloc> >& m) {
     vector<T, Alloc>& d = m.v;
-    out << "{" << mathematica<T > (d[0]);
+    out << "{";
+    if (d.size() > 0) {
+        out << mathematica<T > (d[0]);
+    }
     for (int i = 1; i < d.size(); i++) {
         out << "," << mathematica<T > (d[i]);
     }

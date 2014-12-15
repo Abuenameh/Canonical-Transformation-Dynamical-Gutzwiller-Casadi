@@ -35,7 +35,7 @@ public:
     double E(const vector<double>& f, double t);
 
     void solve();
-    void evolve();
+    void evolve(int nsteps);
 
     vector<double> getGS() { return x0; };
     string& getGSRuntime() { return gsruntime; }
@@ -50,7 +50,7 @@ public:
     
     double getQ() { return Q; }
     double getRho() { return pd; }
-    vector<double> getBs() { return bv; }
+    vector<vector<double>> getBs() { return bv; }
     double getEi() { return E0; }
     double getEf() { return E1; }
     
@@ -71,6 +71,8 @@ private:
     complex<SX> HS();
     SX W();
     SX energy();
+    SX energy0();
+    SX energync();
     SX canonical();
 
     vector<SX> fin;
@@ -122,7 +124,7 @@ private:
     double E1;
     double Q;
     double pd;
-    vector<double> bv;
+    vector<vector<double>> bv;
 };
 
 double energyfunc(const vector<double>& x, vector<double>& grad, void *data);
