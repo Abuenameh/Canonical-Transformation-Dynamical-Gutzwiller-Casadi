@@ -420,7 +420,7 @@ DynamicsProblem::DynamicsProblem() {
     fin = SX::sym("f", 1, 1, 2 * L * dim);
     dU = SX::sym("dU", 1, 1, L);
     J = SX::sym("J", 1, 1, L);
-    Jp = SX::sym("Jp", 1, 1, L);
+    //    Jp = SX::sym("Jp", 1, 1, L);
     U0 = SX::sym("U0");
     mu = SX::sym("mu");
     t = SX::sym("t");
@@ -430,18 +430,44 @@ DynamicsProblem::DynamicsProblem() {
     Wf = SX::sym("Wf");
     tau = SX::sym("tau");
     Wt = if_else(t < tau, Wi + (Wf - Wi) * t / tau, Wf + (Wi - Wf) * (t - tau) / tau);
-    SXFunction Wtf(vector<SX>{t}, vector<SX>{Wt});
-    Wtf.init();
-    Function Wtdt = Wtf.gradient(0, 0);
-    Wtdt.init();
-    SX Wpt = Wtdt.call(vector<SX>{t})[0];
-    U0 = UW(Wt);
+    //    SXFunction Wtf(vector<SX>{t}, vector<SX>{Wt});
+    //    Wtf.init();
+    //    Function Wtdt = Wtf.gradient(0, 0);
+    //    Wtdt.init();
+    //    SX Wpt = Wtdt.call(vector<SX>{t})[0];
+    SX Ut = 1;
+    double Ji = 0.2;
+    double Jf = 0.01;
+    SX Jt = if_else(t < tau, Ji + (Jf - Ji) * t / tau, Jf + (Ji - Jf)*(t - tau) / tau);
+    U0 = Ut; //scale*UW(Wt);
     Jfunc = vector<SXFunction>(L);
     for (int i = 0; i < L; i++) {
-        J[i] = JWij(Wt * xi[i], Wt * xi[mod(i + 1)]);
-        Jp[i] = JWij(Wpt * xi[i], Wpt * xi[mod(i + 1)]);
-        dU[i] = UW(Wt * xi[i]) - U0;
+        J[i] = Jt; //scale*JWij(Wt * xi[i], Wt * xi[mod(i + 1)]);
+        //        J[i] = scale*JWij(Wt, Wt);
+        //        Jp[i] = JWij(Wpt * xi[i], Wpt * xi[mod(i + 1)]);
+        dU[i] = scale * UW(Wt * xi[i]) - U0;
     }
+
+    //    SX Wisubs = 2e11;
+    //    SX Wfsubs = 1e11;
+    //    SX tausubs = 1e-6;
+    //    vector<SX> xisubs(L);
+    //    for (int i = 0; i < L; i++) {
+    //        xisubs[i] = 1;
+    //    }
+
+    //    SX Jsubs = substitute(vector<SX>{J[0]}, vector<SX>{Wi, Wf, tau}, vector<SX>{Wisubs, Wfsubs, tausubs})[0];
+    //    Jsubs = substitute(vector<SX>{Jsubs}, xi, xisubs)[0];
+    //    SX Jpsubs = substitute(vector<SX>{Jp[0]}, vector<SX>{Wi, Wf, tau}, vector<SX>{Wisubs, Wfsubs, tausubs})[0];
+    //    Jpsubs = substitute(vector<SX>{Jpsubs}, xi, xisubs)[0];
+    //    SXFunction Jfunc = SXFunction(vector<SX>{t}, vector<SX>{Jsubs});
+    //    SXFunction Jpfunc = SXFunction(vector<SX>{t}, vector<SX>{Jpsubs});
+    //    Jfunc.init();
+    //    Jpfunc.init();
+    //    double qwe = Jfunc(DMatrix(0.5e-6))[0].getValue();
+    //    double asd = Jpfunc(DMatrix(0.5e-6))[0].getValue();
+    //    cout << qwe << endl << asd << endl;
+    //    exit(0);
 
     vector<SX> params;
     params.push_back(Wi);
@@ -452,11 +478,17 @@ DynamicsProblem::DynamicsProblem() {
 
     vector<SX> gsparams(params.begin(), params.end());
     gsparams.push_back(t);
+    
+    SX E = energya(true);
+    SX S = canonicala();
 
-    SX E = energy0();
-    SX S = 0;//canonical();
+    SXFunction Sf(vector<SX>{t}, vector<SX>{S});
+    Sf.init();
+    Function Sdtf = Sf.gradient(0, 0);
+    Sdtf.init();
+    SX Sdt = Sdtf.call(vector<SX>{t})[0];
 
-    SX GSE = E;
+    SX GSE = energya(true);//E;
 
     x = SX::sym("x", fin.size());
     p = SX::sym("p", params.size());
@@ -479,14 +511,62 @@ DynamicsProblem::DynamicsProblem() {
     GSE = substitute(vector<SX>{GSE}, gsparams, gsps)[0];
     simplify(GSE);
 
+    vector<SX> qwe;
+//    vector<double> qwe;
+    qwe.push_back(0);
+    qwe.push_back(0);
+    qwe.push_back(1);
+    for (int i = 0; i < L; i++) qwe.push_back(1);
+    qwe.push_back(0.5);
+//    qwe.push_back(0);
+    
+    vector<SX> asd = vector<SX>{0.43612801607392543,0.23717544586479253,0.26077849862095465,0.3200273453213472,
+   0.10425529497771417,0.3824801486141887,0.2429356567353783,0.30160591780809193,
+   0.3729682453346464,0.36995652280327834,0.16884355568029785,0.03306632031403832,
+   0.12079205421387129,0.019706647344946406,0.440966613369467,0.4184572680568556,
+   0.0016817400101205538,0.35118576227869996,0.4432247501716445,0.5158283760299978,
+   0.19735658869748748,0.3777909238304533,0.458763968593948,0.03632887765359411,
+   0.37947968147894784,0.2501010473047869,0.11842238203139385,0.4204266843357301,
+   0.2516913796220109,0.381908180032208,0.24404811263968323,0.46479584529800944,
+   0.5442060683225153,0.16893924185637502,0.01228585898011247,0.0339108004677902,
+   0.37496157323943646,0.03898019300644058,0.2507702727800595,0.439775371513932,
+   0.06507875464590163,0.027214305949468137,0.5565377930879596,0.0601314141641671,
+   0.0769433485390323,0.2703479498191469,0.4360466037340656,0.46099339709471787,
+   0.0012596639678839389,0.4472276855682792};
+    
+    vector<SX> asd2 = vector<SX>{1.2641379967578872e-8,1.0329124622714652e-8,-9.010011167448173e-8,
+//    vector<double> asd = vector<double>{1.2641379967578872e-8,1.0329124622714652e-8,-9.010011167448173e-8,
+   4.952024194390157e-9,-2.4736059994708016e-8,6.767942814862892e-8,1.5078082738426852,
+   -0.7273628963610762,2.5651999213642657e-8,5.274015577978409e-8,1.6126387654535521,
+   0.44937597795802225,-3.082582069228331e-8,-3.7348106231131246e-9,
+   -3.107817148602482e-9,-9.18356240901078e-8,-1.3570714372580044e-8,
+   -1.7348072777272648e-8,-1.0302373095677293,-1.0802183085677775,-3.075869188792871e-8,
+   -2.3051053277433743e-8,-0.8278062664917237,1.242174415499053,-2.489748185603503e-8,
+   -5.124088914618176e-8,1.6149957978339713e-7,1.6817491005983512e-8,
+   9.052543197693599e-9,-2.0088986721592977e-8,-1.5857366031377942,1.398449913478343,
+   -1.6269609273222e-8,-4.141137168722801e-8,-0.6563456506116018,-2.0098341174730647,
+   3.090771469109901e-9,-1.2794123357267029e-8,-1.3301642603877747e-8,
+   -3.231925612400513e-8,-3.1352157953272317e-9,-7.543204694376377e-9,
+   -0.46385694011152556,-1.1905932570298374,1.6234629769130116e-8,6.488901740580542e-10,
+   -1.0063744407621653,-0.7873284305173013,5.581134735279098e-9,-4.176388117800141e-9,
+   2.6580125078511663e-8,-1.0313661578283649e-8,-5.9072349948463525e-8,
+   9.43792972683785e-9,0.3172741995274047,-1.4135896677056718,-8.021046572151412e-9,
+   -1.4296187870572331e-8,-0.447057327195672,1.3780560445876853};
+//    for (int i = 0; i < xs.size()/2; i++) {
+////        asd.push_back(1/sqrt(2.*dim));
+//        asd.push_back((i%dim)/sqrt(2.*dim));
+//        asd.push_back((i%dim + 1)/sqrt(2.*dim));
+//    }
+
     Ef = SXFunction(nlpIn("x", x, "p", gsp), nlpOut("f", GSE));
     Ef.init();
     Egradf = Ef.gradient(NL_X, NL_F);
     Egradf.init();
 
 
-    SX HSr = S;
+    SX HSr = Sdt;
     SX HSi = -E;
+//    SX HSi = Sdt;//-E+Sdt;
     HSr = substitute(vector<SX>{HSr}, fin, xs)[0];
     HSr = substitute(vector<SX>{HSr}, params, ps)[0];
     HSi = substitute(vector<SX>{HSi}, fin, xs)[0];
@@ -501,21 +581,60 @@ DynamicsProblem::DynamicsProblem() {
     HSrdff.init();
     HSidff.init();
 
+    SXFunction HSf2 = SXFunction(vector<SX>{x, p, t}, vector<SX>{HSr, HSi});
+//    cout << HSf2.getNumInputs() << endl;
+//    cout << HSf2.getNumOutputs() << endl;
+    HSf2.init();
+    Function HSrdff2 = HSf2.gradient(0, 0);
+    Function HSidff2 = HSf2.gradient(0, 1);
+//    cout << HSidff2.getNumInputs() << endl;
+//    cout << HSidff2.getNumOutputs() << endl;
+    HSrdff2.init();
+    HSidff2.init();
+
+//    HSidff2.setInput(asd, 0);
+//    HSidff2.setInput(qwe, 1);
+//    HSidff2.setInput(1., 2);
+//    HSidff2.evaluate();
+//    SX HSi2 = HSidff.getOutput(0);
+////    SX HSi2 = HSidff.call(vector<vector<SX>>{asd, qwe})[1];
+////    HSi2 = substitute(vector<SX>{HSi2}, vector<SX>{t}, vector<SX>{0})[0];
+//    cout << HSi2 << endl;
+//    exit(0);
+
+//    SX Sdt2 = substitute(vector<SX>{Sdt}, fin, asd)[0];
+//    Sdt2 = substitute(vector<SX>{Sdt2}, gsparams, qwe)[0];
+//    cout << Sdt2 << endl;
+//    exit(0);
+
     SX HSrdftmp = HSrdff.call(vector<SX>{x, p})[0];
     SX HSidftmp = HSidff.call(vector<SX>{x, p})[0];
 
+    SX HSitmp2 = HSidftmp;
+    HSitmp2 = substitute(vector<SX>{HSitmp2}, xs, asd)[0];
+    HSitmp2 = substitute(vector<SX>{HSitmp2}, ps, qwe)[0];
+    HSitmp2 = substitute(vector<SX>{HSitmp2}, vector<SX>{t}, vector<SX>{0})[0];
+//    cout << HSitmp2 << endl;
+////    cout << HSidftmp << endl;
+//    exit(0);
+
     ode = SX::sym("ode", 2 * L * dim);
     for (int i = 0; i < L * dim; i++) {
-//        ode[2 * i] = 0.5 * (HSrdftmp[2 * i] - HSidftmp[2 * i + 1]);
-//        ode[2 * i + 1] = 0.5 * (HSidftmp[2 * i] + HSrdftmp[2 * i + 1]);
-        ode[2 * i] = 0.5 * - HSidftmp[2 * i + 1];
-        ode[2 * i + 1] = 0.5 * HSidftmp[2 * i];
+                ode[2 * i] = 0.5 * (HSrdftmp[2 * i] - HSidftmp[2 * i + 1]);
+                ode[2 * i + 1] = 0.5 * (HSidftmp[2 * i] + HSrdftmp[2 * i + 1]);
+//        ode[2 * i] = 0.5 * - HSidftmp[2 * i + 1];
+//        ode[2 * i + 1] = 0.5 * HSidftmp[2 * i];
     }
     ode_func = SXFunction(daeIn("x", x, "t", t, "p", p), daeOut("ode", ode));
 
     Function g;
     integrator = new CvodesInterface(ode_func, g);
-    integrator->setOption("max_num_steps", 100000);
+    integrator->setOption("max_num_steps", 1000000);
+//    integrator->setOption("linear_multistep_method", "adams");
+//        integrator->setOption("linear_solver", "csparse");
+//        integrator->setOption("linear_solver_type", "user_defined");
+//        integrator = new RkIntegrator(ode_func, g);
+//        integrator->setOption("number_of_finite_elements", 50000);
     integrator->init();
 
     lopt = new opt(LD_LBFGS, 2 * L * dim);
@@ -524,25 +643,26 @@ DynamicsProblem::DynamicsProblem() {
     lopt->set_min_objective(energyfunc, this);
 }
 
-void DynamicsProblem::setParameters(double Wi_, double Wf_, double tau_, vector<double>& xi_, double mu) {
+void DynamicsProblem::setParameters(double Wi_, double Wf_, double tau_, vector<double>& xi_, double mu_) {
     params.clear();
     params.push_back(Wi_);
     params.push_back(Wf_);
-    params.push_back(tau_);
+    params.push_back(tau_ / scale);
     for (double xii : xi_) params.push_back(xii);
-    params.push_back(mu);
+    params.push_back(0.5/*scale*mu_*/);
     integrator->setOption("t0", 0);
-    integrator->setOption("tf", 2 * tau_);
+    integrator->setOption("tf", 2 * tau_ / scale);
     integrator->init();
 
     gsparams = vector<double>(params.begin(), params.end());
     gsparams.push_back(0);
 
-    tf = 2 * tau_;
+    tf = 2 * tau_ / scale; // - 1e-10;
+//    tf -= 1e-3;
 
     SX Wisubs = Wi_;
     SX Wfsubs = Wf_;
-    SX tausubs = tau_;
+    SX tausubs = tau_ / scale;
     vector<SX> xisubs(L);
     for (int i = 0; i < L; i++) {
         xisubs[i] = xi_[i];
@@ -558,6 +678,10 @@ void DynamicsProblem::setParameters(double Wi_, double Wf_, double tau_, vector<
         Jfunc[i] = SXFunction(vector<SX>{t}, vector<SX>{Jsubs[i]});
         Jfunc[i].init();
     }
+    //    DMatrix z(0);
+    //    double J0 = Jfunc[0](z)[0].getValue();
+    //    double U0 = Ufunc(z)[0].getValue();
+    //    cout << J0 << "\t" << U0 << "\t" << J0/U0 << endl;
 }
 
 void DynamicsProblem::setInitial(vector<double>& f0) {
@@ -578,18 +702,18 @@ void DynamicsProblem::setInitial(vector<double>& f0) {
 
 void DynamicsProblem::solve() {
     double E0;
-//    try {
-        start_time = microsec_clock::local_time();
-        enum result res = lopt->optimize(x0, E0);
-        stop_time = microsec_clock::local_time();
-        gsresult = to_string(res);
-//    }
-//    catch (std::exception& e) {
-//        stop_time = microsec_clock::local_time();
-//        enum result res = lopt->last_optimize_result();
-//        gsresult = to_string(res) + ": " + e.what();
-//        cerr << e.what() << endl;
-//    }
+    //    try {
+    start_time = microsec_clock::local_time();
+    enum result res = lopt->optimize(x0, E0);
+    stop_time = microsec_clock::local_time();
+    gsresult = to_string(res);
+    //    }
+    //    catch (std::exception& e) {
+    //        stop_time = microsec_clock::local_time();
+    //        enum result res = lopt->last_optimize_result();
+    //        gsresult = to_string(res) + ": " + e.what();
+    //        cerr << e.what() << endl;
+    //    }
 
     vector<complex<double>> fi(dim);
     for (int i = 0; i < L; i++) {
@@ -602,6 +726,9 @@ void DynamicsProblem::solve() {
             x0[2 * (i * dim + n) + 1] /= nrm;
         }
     }
+//    cout << setprecision(10) << E0 << endl;
+//        cout << setprecision(10) << x0 << endl;
+//        exit(0);
 
     time_period period(start_time, stop_time);
     gsruntime = to_simple_string(period.length());
@@ -621,14 +748,14 @@ void DynamicsProblem::evolve(int nsteps) {
     E0 = E(x0, 0);
 
     //    vector<double> bv;
-//    bv = vector<vector<double>>(nsteps, vector<double>());
+    //    bv = vector<vector<double>>(nsteps, vector<double>());
     bv.clear();
-    
+
     vector<double> Es;
 
     ptime int_start_time = microsec_clock::local_time();
     integrator->reset();
-//    int npoints = 50;
+    //    int npoints = 50;
     for (int j = 0; j <= nsteps; j++) {
         double ti = j * tf / nsteps;
         integrator->integrate(min(ti, tf));
@@ -643,11 +770,13 @@ void DynamicsProblem::evolve(int nsteps) {
                 fi[i][n] /= nrm;
             }
         }
-//    vector<double> f_i;
-//    for (int i = 0; i < 2 * L * dim; i++) {
-//        f_i.push_back(x_i[i].getValue());
-//    }
-//    Es.push_back(E(f_i, min(ti,tf)));
+        vector<double> f_i;
+        for (int i = 0; i < 2 * L * dim; i++) {
+            f_i.push_back(x_i[i].getValue());
+        }
+        double E_i = E(f_i, ti);
+        //    cout << setprecision(10) << E_i << endl;
+        Es.push_back(E(f_i, min(ti, tf)));
         double Ui = Ufunc(DMatrix(ti))[0].getValue();
         vector<double> Ji(L);
         for (int i = 0; i < L; i++) {
@@ -662,13 +791,14 @@ void DynamicsProblem::evolve(int nsteps) {
             bsi[i] = abs(bsci[i]);
         }
         bv.push_back(bsi);
-//        bv[j] = bsi;
-//        bv.push_back(bsi[0]);
+        //        bv[j] = bsi;
+        //        bv.push_back(bsi[0]);
     }
-//    cout << setprecision(10) << Es << endl;
+    //    cout << setprecision(10) << Es << endl;
+    //    exit(0);
 
-//    integrator->reset();
-//    integrator->evaluate();
+    //    integrator->reset();
+    //    integrator->evaluate();
     integrator->integrate(tf);
     DMatrix xf = integrator->output(INTEGRATOR_XF);
     vector<double> ff;
@@ -771,7 +901,111 @@ SX DynamicsProblem::energync() {
         E += Ej1 / (norm2[i] * norm2[j1]);
         E += Ej2 / (norm2[i] * norm2[j2]);
     }
-    
+
+    return E.real();
+}
+
+SX DynamicsProblem::energya(bool normalize) {
+    vector<complex<SX>* > f(L);
+    vector<SX> norm2(L, 0);
+    for (int i = 0; i < L; i++) {
+        f[i] = reinterpret_cast<complex<SX>*> (&fin[2 * i * dim]);
+        for (int n = 0; n <= nmax; n++) {
+            norm2[i] += f[i][n].real() * f[i][n].real() + f[i][n].imag() * f[i][n].imag();
+        }
+    }
+
+    complex<SX> E = complex<SX>(0, 0);
+
+    complex<SX> Ei, Ej1, Ej2, Ej1j2, Ej1k1, Ej2k2;
+
+    for (int i = 0; i < L; i++) {
+        int k1 = mod(i - 2);
+        int j1 = mod(i - 1);
+        int j2 = mod(i + 1);
+        int k2 = mod(i + 2);
+
+        Ei = complex<SX>(0, 0);
+        Ej1 = complex<SX>(0, 0);
+        Ej2 = complex<SX>(0, 0);
+        Ej1j2 = complex<SX>(0, 0);
+        Ej1k1 = complex<SX>(0, 0);
+        Ej2k2 = complex<SX>(0, 0);
+
+        for (int n = 0; n <= nmax; n++) {
+            Ei += (0.5 * U0 * n * (n - 1) - mu * n) * ~f[i][n] * f[i][n];
+
+            if (n < nmax) {
+                Ej1 += -J[j1] * (n + 1)* ~f[i][n + 1] * f[i][n] * ~f[j1][n] * f[j1][n + 1];
+                Ej2 += -J[i] * (n + 1)* ~f[i][n + 1] * f[i][n] * ~f[j2][n] * f[j2][n + 1];
+
+                for (int a = -nmax+1; a <= nmax; a++) {
+                    if (a != 0) {
+                        if (n + a + 1 >= 0 && n + a + 1 <= nmax) {
+                            Ej1 += 0.5 * (n + 1) * (n + a + 1) * J[j1] * J[j1]*~f[i][n] * f[i][n]*~f[j1][n + a + 1] * f[j1][n + a + 1] / eps(U0, i, j1, a);
+                            Ej2 += 0.5 * (n + 1) * (n + a + 1)* J[i] * J[i]*~f[i][n] * f[i][n]*~f[j2][n + a + 1] * f[j2][n + a + 1] / eps(U0, i, j2, a);
+                        }
+                        if (n - a + 1 >= 0 && n - a + 1 <= nmax) {
+                            Ej1 += -0.5 * (n + 1) * (n - a + 1) * J[j1] * J[j1]*~f[i][n] * f[i][n]*~f[j1][n - a + 1] * f[j1][n - a + 1] / eps(U0, i, j1, a);
+                            Ej2 += -0.5 * (n + 1) * (n - a + 1) * J[i] * J[i]*~f[i][n] * f[i][n]*~f[j2][n - a + 1] * f[j2][n - a + 1] / eps(U0, i, j2, a);
+                        }
+                    }
+                }
+
+                if (n < nmax - 1) {
+                    Ej1 += 0.5*(n + 1)*(n + 2) * J[j1] * J[j1]*~f[i][n + 2] * f[i][n]*~f[j1][n] * f[j1][n + 2]*(1 / eps(U0, i, j1, 1) - 1 / eps(U0, i, j1, -1));
+                    Ej2 += 0.5*(n + 1)*(n + 2) * J[i] * J[i]*~f[i][n + 2] * f[i][n]*~f[j2][n] * f[j2][n + 2]*(1 / eps(U0, i, j2, 1) - 1 / eps(U0, i, j2, -1));
+                
+                    for (int a = -nmax+1; a <= nmax; a++) {
+                        if (a != 0) {
+                            if (n+a >= 0 && n+a <= nmax && n+a+1 >= 0 && n+a+1 <= nmax && n-a+1 >= 0 && n-a+1 <= nmax && n-a+2 >= 0 && n-a+2 <= nmax) {
+                                Ej1j2 += 0.5 * J[j1] * J[i] * ~f[i][n+2] * f[i][n] / eps(U0, i, j1, a) * ga(n, -a) * ga(n+1, a) * ~f[j2][n+a] * f[j2][n+a+1] * ~f[j1][n-a+1] * f[j1][n-a+2];
+                                Ej1j2 += 0.5 * J[j1] * J[i] * f[i][n+2] * ~f[i][n] / eps(U0, i, j1, a) * ga(n, -a) * ga(n+1, a) * f[j2][n+a] * ~f[j2][n+a+1] * f[j1][n-a+1] * ~f[j1][n-a+2];
+                                Ej1j2 += 0.5 * J[j1] * J[i] * ~f[i][n+2] * f[i][n] / eps(U0, i, j2, a) * ga(n, -a) * ga(n+1, a) * ~f[j1][n+a] * f[j1][n+a+1] * ~f[j2][n-a+1] * f[j2][n-a+2];
+                                Ej1j2 += 0.5 * J[j1] * J[i] * f[i][n+2] * ~f[i][n] / eps(U0, i, j2, a) * ga(n, -a) * ga(n+1, a) * f[j1][n+a] * ~f[j1][n+a+1] * f[j2][n-a+1] * ~f[j2][n-a+2];
+                            }
+                            if (n-a >= 0 && n-a <= nmax && n-a+1 >= 0 && n-a+1 <= nmax && n+a+1 >= 0 && n+a+1 <= nmax && n+a+2 >= 0 && n+a+2 <= nmax) {
+                                Ej1j2 -= 0.5 * J[j1] * J[i] * ~f[i][n+2] * f[i][n] / eps(U0, i, j1, -a) * ga(n, a) * ga(n+1, -a) * ~f[j2][n-a] * f[j2][n-a+1] * ~f[j1][n+a+1] * f[j1][n+a+2];
+                                Ej1j2 -= 0.5 * J[j1] * J[i] * f[i][n+2] * ~f[i][n] / eps(U0, i, j1, -a) * ga(n, a) * ga(n+1, -a) * f[j2][n-a] * ~f[j2][n-a+1] * f[j1][n+a+1] * ~f[j1][n+a+2];
+                                Ej1j2 -= 0.5 * J[j1] * J[i] * ~f[i][n+2] * f[i][n] / eps(U0, i, j2, -a) * ga(n, a) * ga(n+1, -a) * ~f[j1][n-a] * f[j1][n-a+1] * ~f[j2][n+a+1] * f[j2][n+a+2];
+                                Ej1j2 -= 0.5 * J[j1] * J[i] * f[i][n+2] * ~f[i][n] / eps(U0, i, j2, -a) * ga(n, a) * ga(n+1, -a) * f[j1][n-a] * ~f[j1][n-a+1] * f[j2][n+a+1] * ~f[j2][n+a+2];
+                            }
+                            
+                            if (n+a >= 0 && n+a <= nmax && n+a+1 >= 0 && n+a+1 <= nmax) {
+                                Ej1k1 += 0.5 * J[j1] * J[k1] * ~f[j1][n] * f[j1][n] / eps(U0, i, j1, a) * ga(n, -a) * ga(n+a, a) * ~f[k1][n+a] * f[k1][n+a+1] * ~f[i][n+a+1] * f[i][n+a];
+                                Ej1k1 += 0.5 * J[j1] * J[k1] * f[j1][n] * ~f[j1][n] / eps(U0, i, j1, a) * ga(n, -a) * ga(n+a, a) * f[k1][n+a] * ~f[k1][n+a+1] * f[i][n+a+1] * ~f[i][n+a];
+                                Ej2k2 += 0.5 * J[j2] * J[i] * ~f[j2][n] * f[j2][n] / eps(U0, i, j2, a) * ga(n, -a) * ga(n+a, a) * ~f[k2][n+a] * f[k2][n+a+1] * ~f[i][n+a+1] * f[i][n+a];
+                                Ej2k2 += 0.5 * J[j2] * J[i] * f[j2][n] * ~f[j2][n] / eps(U0, i, j2, a) * ga(n, -a) * ga(n+a, a) * f[k2][n+a] * ~f[k2][n+a+1] * f[i][n+a+1] * ~f[i][n+a];
+                            }
+                            if (n-a >= 0 && n-a <= nmax && n-a+1 >= 0 && n-a+1 <= nmax) {
+                                Ej1k1 -= 0.5 * J[j1] * J[k1] * ~f[j1][n] * f[j1][n] / eps(U0, i, j1, -a) * ga(n, a) * ga(n-a, -a) * ~f[k1][n-a] * f[k1][n-a+1] * ~f[i][n-a+1] * f[i][n-a];
+                                Ej1k1 -= 0.5 * J[j1] * J[k1] * f[j1][n] * ~f[j1][n] / eps(U0, i, j1, -a) * ga(n, a) * ga(n-a, -a) * f[k1][n-a] * ~f[k1][n-a+1] * f[i][n-a+1] * ~f[i][n-a];
+                                Ej2k2 -= 0.5 * J[j2] * J[i] * ~f[j2][n] * f[j2][n] / eps(U0, i, j2, -a) * ga(n, a) * ga(n-a, -a) * ~f[k2][n-a] * f[k2][n-a+1] * ~f[i][n-a+1] * f[i][n-a];
+                                Ej2k2 -= 0.5 * J[j2] * J[i] * f[j2][n] * ~f[j2][n] / eps(U0, i, j2, -a) * ga(n, a) * ga(n-a, -a) * f[k2][n-a] * ~f[k2][n-a+1] * f[i][n-a+1] * ~f[i][n-a];
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        if (normalize) {
+        Ei /= norm2[i];
+        Ej1 /= norm2[i] * norm2[j1];
+        Ej2 /= norm2[i] * norm2[j2];
+        Ej1j2 /= norm2[i] * norm2[j1] * norm2[j2];
+        Ej1k1 /= norm2[i] * norm2[j1] * norm2[k1];
+        Ej2k2 /= norm2[i] * norm2[j2] * norm2[k2];
+        }
+
+        E += Ei;
+        E += Ej1;
+        E += Ej2;
+        E += Ej1j2;
+        E += Ej1k1;
+        E += Ej2k2;
+    }
+
     return E.real();
 }
 
@@ -1063,6 +1297,50 @@ SX DynamicsProblem::energy() {
     return E.real();
 }
 
+SX DynamicsProblem::canonicala() {
+
+    vector<complex<SX>* > f(L);
+    vector<SX> norm2(L, 0);
+    for (int i = 0; i < L; i++) {
+        f[i] = reinterpret_cast<complex<SX>*> (&fin[2 * i * dim]);
+        for (int n = 0; n <= nmax; n++) {
+            norm2[i] += f[i][n].real() * f[i][n].real() + f[i][n].imag() * f[i][n].imag();
+        }
+    }
+
+    complex<SX> S = complex<SX>(0, 0);
+
+    complex<SX> Sj1, Sj2;
+
+    for (int i = 0; i < L; i++) {
+
+        int j1 = mod(i - 1);
+        int j2 = mod(i + 1);
+
+        Sj1 = complex<SX>(0, 0);
+        Sj2 = complex<SX>(0, 0);
+
+        for (int a = -nmax; a <= nmax; a++) {
+            if (a != 0) {
+                for (int n = 0; n < nmax; n++) {
+                    if (n-a >= 0 && n-a <= nmax && n-a+1 >= 0 && n-a+1 <= nmax) {
+                        Sj1 += -J[j1] / eps(U0, i, j1, a) * ga(n, a) * ~f[i][n+1] * f[i][n] * ~f[j1][n-a] * f[j1][n-a+1];
+                        Sj2 += -J[i] / eps(U0, i, j2, a) * ga(n, a) * ~f[i][n+1] * f[i][n] * ~f[j2][n-a] * f[j2][n-a+1];
+                    }
+                }
+            }
+        }
+
+        Sj1 /= norm2[i] * norm2[j1];
+        Sj2 /= norm2[i] * norm2[j2];
+        
+        S += Sj1;
+        S += Sj2;
+    }
+
+    return S.imag();
+}
+
 SX DynamicsProblem::canonical() {
 
     vector<complex<SX>* > f(L);
@@ -1080,10 +1358,8 @@ SX DynamicsProblem::canonical() {
 
     for (int i = 0; i < L; i++) {
 
-        int k1 = mod(i - 2);
         int j1 = mod(i - 1);
         int j2 = mod(i + 1);
-        int k2 = mod(i + 2);
 
         Sj1 = complex<SX>(0, 0);
         Sj2 = complex<SX>(0, 0);
@@ -1092,9 +1368,9 @@ SX DynamicsProblem::canonical() {
             if (n < nmax) {
                 for (int m = 1; m <= nmax; m++) {
                     if (n != m - 1) {
-                        Sj1 += -Jp[j1] * g(n, m) * (1 / eps(U0, n, m))
+                        Sj1 += -J[j1] * g(n, m) * (1 / eps(U0, n, m))
                                 * ~f[i][n + 1] * ~f[j1][m - 1] * f[i][n] * f[j1][m];
-                        Sj2 += -Jp[i] * g(n, m) * (1 / eps(U0, n, m))
+                        Sj2 += -J[i] * g(n, m) * (1 / eps(U0, n, m))
                                 * ~f[i][n + 1] * ~f[j2][m - 1] * f[i][n] * f[j2][m];
 
                     }

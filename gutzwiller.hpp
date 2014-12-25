@@ -15,7 +15,7 @@
 using namespace std;
 
 const int L = 5;
-const int nmax = 5;
+const int nmax = 4;
 const int dim = nmax + 1;
 
 const double M = 1000;
@@ -50,6 +50,10 @@ inline double g2(int n, int m) {
     return sqrt(1.0*(n + 1) * m);
 }
 
+inline SX ga(int n, int a) {
+    return sqrt(1.0*(n+1)*(n-a+1));
+}
+
 inline SX eps(vector<SX>& U, int i, int j, int n, int m) {
 	return n * U[i] - (m - 1) * U[j];
 }
@@ -64,6 +68,10 @@ inline SX eps(vector<SX>& U, int i, int j, int n, int m, int k, int l, int p, in
 
 inline double eps(double U, int n, int m) {
     return (n - m + 1) * U;
+}
+
+inline SX eps(SX& U, int i, int j, int a) {
+    return a*U;
 }
 
 

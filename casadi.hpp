@@ -9,6 +9,7 @@
 #define	CASADI_HPP
 
 #include <casadi/casadi.hpp>
+#include <casadi/solvers/rk_integrator.hpp>
 #include <casadi/interfaces/sundials/cvodes_interface.hpp>
 
 using namespace casadi;
@@ -67,19 +68,23 @@ private:
 
     ptime start_time;
     ptime stop_time;
+    
+    double scale = 1;
 
     complex<SX> HS();
     SX W();
     SX energy();
+    SX energya(bool normalize);
     SX energy0();
     SX energync();
     SX canonical();
+    SX canonicala();
 
     vector<SX> fin;
     SX U0;
     vector<SX> dU;
     vector<SX> J;
-    vector<SX> Jp;
+//    vector<SX> Jp;
     SX mu;
     vector<SX> xi;
     SX Wi;
@@ -106,6 +111,7 @@ private:
     SX ode;
     SXFunction ode_func;
     CvodesInterface* integrator;
+//    RkIntegrator* integrator;
 
     vector<double> params;
     vector<double> gsparams;

@@ -55,6 +55,9 @@ boost::mutex progress_mutex;
 boost::mutex inputs_mutex;
 boost::mutex problem_mutex;
 
+boost::random::mt19937 rng;
+boost::random::uniform_real_distribution<> uni(-1, 1);
+
 void threadfunc(double Wi, double Wf, double mu, vector<double> xi, int nsteps, queue<input>& inputs, vector<results>& res, progress_display& progress) {
     DynamicsProblem* prob;
 
@@ -85,6 +88,11 @@ void threadfunc(double Wi, double Wf, double mu, vector<double> xi, int nsteps, 
         {
             boost::mutex::scoped_lock lock(problem_mutex);
             prob->setParameters(Wi, Wf, tau, xi, mu);
+            rng.seed();
+            for (int i = 0; i < 2*L*dim; i++) {
+                f0[i] = uni(rng);
+            }
+            
         }
         prob->setInitial(f0);
         try {
@@ -214,7 +222,7 @@ int main(int argc, char** argv) {
     }
 
     //        double Ui = UW(Wi);
-    double mui = mu * 2 * Ui;
+    double mui = mu * Ui;
 
     filesystem::ofstream os(resfile);
     printMath(os, "seed", resi, seed);
@@ -252,7 +260,7 @@ int main(int argc, char** argv) {
 
     thread_group threads;
     for (int i = 0; i < numthreads; i++) {
-        threads.create_thread(bind(&threadfunc, Wi, Wf, mu, xi, nsteps, boost::ref(inputs), boost::ref(res), boost::ref(progress)));
+        threads.create_thread(bind(&threadfunc, Wi, Wf, mui, xi, nsteps, boost::ref(inputs), boost::ref(res), boost::ref(progress)));
     }
     threads.join_all();
 
