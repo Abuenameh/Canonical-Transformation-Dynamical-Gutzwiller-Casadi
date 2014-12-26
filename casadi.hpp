@@ -30,7 +30,7 @@ public:
         ~DynamicsProblem() { delete lopt; delete integrator; }
 
         void setTau(double tau_);
-    void setParameters(double Wi, double Wf, double tau, vector<double>& xi, double mu);
+//    void setParameters(double Wi, double Wf, double tau, vector<double>& xi, double mu);
 
     double E(const vector<double>& f, vector<double>& grad);
     double E(const vector<double>& f, double t);
@@ -88,11 +88,7 @@ private:
     SX U0;
     vector<SX> dU;
     vector<SX> J;
-//    vector<SX> Jp;
     double mu;
-//    vector<SX> xi;
-//    double Wi;
-//    double Wf;
     SX tau;
 
     SX Wt;
@@ -103,9 +99,6 @@ private:
     SX gsp;
 
     double tf;
-
-    SXFunction Ufunc;
-    vector<SXFunction> Jfunc;
 
     double U00;
     vector<double> J0;
