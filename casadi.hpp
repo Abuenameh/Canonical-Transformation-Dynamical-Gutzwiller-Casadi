@@ -26,16 +26,15 @@ using namespace nlopt;
 
 class DynamicsProblem {
 public:
-    DynamicsProblem();
+    DynamicsProblem(double Wi, double Wf, double mu_, vector<double>& xi, vector<double>& f0);
         ~DynamicsProblem() { delete lopt; delete integrator; }
 
+        void setTau(double tau_);
     void setParameters(double Wi, double Wf, double tau, vector<double>& xi, double mu);
-    void setInitial(vector<double>& f0);
 
     double E(const vector<double>& f, vector<double>& grad);
     double E(const vector<double>& f, double t);
 
-    void solve();
     void evolve(int nsteps);
 
     vector<double> getGS() { return x0; };
@@ -52,8 +51,10 @@ public:
     double getQ() { return Q; }
     double getRho() { return pd; }
     vector<vector<double>> getBs() { return bv; }
+    vector<double> getB0() { return b0; }
+    vector<double> getBf() { return bf; }
     double getEi() { return E0; }
-    double getEf() { return E1; }
+    double getEf() { return Ef; }
     
     void start() 
     {
@@ -71,10 +72,13 @@ private:
     
     double scale = 1;
 
+    void setInitial(vector<double>& f0);
+    void solve();
+
     complex<SX> HS();
     SX W();
     SX energy();
-    SX energya(bool normalize);
+    SX energya();
     SX energy0();
     SX energync();
     SX canonical();
@@ -85,10 +89,10 @@ private:
     vector<SX> dU;
     vector<SX> J;
 //    vector<SX> Jp;
-    SX mu;
-    vector<SX> xi;
-    SX Wi;
-    SX Wf;
+    double mu;
+//    vector<SX> xi;
+//    double Wi;
+//    double Wf;
     SX tau;
 
     SX Wt;
@@ -103,8 +107,8 @@ private:
     SXFunction Ufunc;
     vector<SXFunction> Jfunc;
 
-    double U0d;
-    vector<double> Jd;
+    double U00;
+    vector<double> J0;
     
     opt* lopt;
 
@@ -117,7 +121,7 @@ private:
     vector<double> gsparams;
     vector<double> x0;
     
-    SXFunction Ef;
+    SXFunction Efunc;
     Function Egradf;
 
     string gsruntime;
@@ -127,10 +131,12 @@ private:
     string result;
     
     double E0;
-    double E1;
+    double Ef;
     double Q;
     double pd;
     vector<vector<double>> bv;
+    vector<double> b0;
+    vector<double> bf;
 };
 
 double energyfunc(const vector<double>& x, vector<double>& grad, void *data);

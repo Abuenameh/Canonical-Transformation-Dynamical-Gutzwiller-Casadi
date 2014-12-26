@@ -48,6 +48,8 @@ struct results {
     double Q;
     double p;
     vector<vector<double>> bs;
+    vector<double> b0;
+    vector<double> bf;
     string runtime;
 };
 
@@ -63,7 +65,14 @@ void threadfunc(double Wi, double Wf, double mu, vector<double> xi, int nsteps, 
 
     {
         boost::mutex::scoped_lock lock(problem_mutex);
-        prob = new DynamicsProblem();
+
+        vector<double> f0(2 * L*dim, 1);
+            rng.seed();
+            for (int i = 0; i < 2*L*dim; i++) {
+                f0[i] = uni(rng);
+            }
+
+            prob = new DynamicsProblem(Wi, Wf, mu, xi, f0);
     }
 
     for (;;) {
@@ -83,25 +92,28 @@ void threadfunc(double Wi, double Wf, double mu, vector<double> xi, int nsteps, 
 
         //    int ndim = 2 * L*dim;
 
-        vector<double> f0(2 * L*dim, 1);
+//        vector<double> f0(2 * L*dim, 1);
 
-        {
-            boost::mutex::scoped_lock lock(problem_mutex);
-            prob->setParameters(Wi, Wf, tau, xi, mu);
-            rng.seed();
-            for (int i = 0; i < 2*L*dim; i++) {
-                f0[i] = uni(rng);
-            }
-            
-        }
-        prob->setInitial(f0);
+//        {
+//            boost::mutex::scoped_lock lock(problem_mutex);
+//            prob->setParameters(Wi, Wf, tau, xi, mu);
+//            rng.seed();
+//            for (int i = 0; i < 2*L*dim; i++) {
+//                f0[i] = uni(rng);
+//            }
+//            
+//        }
+//        prob->setInitial(f0);
         try {
-        prob->solve();
+//        prob->solve();
+            prob->setTau(tau);
             prob->evolve(nsteps);
             pointRes.Ei = prob->getEi();
             pointRes.Ef = prob->getEf();
             pointRes.Q = prob->getQ();
             pointRes.p = prob->getRho();
+            pointRes.b0 = prob->getB0();
+            pointRes.bf = prob->getBf();
             pointRes.bs = prob->getBs();
             pointRes.runtime = prob->getRuntime();
         }
@@ -112,6 +124,8 @@ void threadfunc(double Wi, double Wf, double mu, vector<double> xi, int nsteps, 
             pointRes.Ef = numeric_limits<double>::quiet_NaN();
             pointRes.Q = numeric_limits<double>::quiet_NaN();
             pointRes.p = numeric_limits<double>::quiet_NaN();
+            pointRes.b0 = vector<double>();
+            pointRes.bf = vector<double>();
             pointRes.bs = vector<vector<double>>();
             pointRes.runtime = "Failed";
         }
@@ -269,6 +283,8 @@ int main(int argc, char** argv) {
     vector<double> Efres;
     vector<double> Qres;
     vector<double> pres;
+    vector<vector<double>> b0res;
+    vector<vector<double>> bfres;
     vector<vector<vector<double>>> bsres;
     vector<string> runtimeres;
 
@@ -278,6 +294,8 @@ int main(int argc, char** argv) {
         Efres.push_back(ires.Ef);
         Qres.push_back(ires.Q);
         pres.push_back(ires.p);
+        b0res.push_back(ires.b0);
+        bfres.push_back(ires.bf);
         bsres.push_back(ires.bs);
         runtimeres.push_back(ires.runtime);
     }
@@ -287,6 +305,8 @@ int main(int argc, char** argv) {
     printMath(os, "Efres", resi, Efres);
     printMath(os, "Qres", resi, Qres);
     printMath(os, "pres", resi, pres);
+    printMath(os, "b0res", resi, b0res);
+    printMath(os, "bfres", resi, bfres);
     printMath(os, "bsres", resi, bsres);
     printMath(os, "runtime", resi, runtimeres);
 
