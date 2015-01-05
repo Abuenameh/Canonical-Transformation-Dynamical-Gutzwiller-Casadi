@@ -47,9 +47,13 @@ struct results {
     double Ef;
     double Q;
     double p;
-    vector<vector<double>> bs;
-    vector<double> b0;
-    vector<double> bf;
+//    vector<vector<double>> bs;
+    double U0;
+    vector<double> J0;
+    vector<complex<double>> b0;
+    vector<complex<double>> bf;
+    vector<vector<complex<double>>> f0;
+    vector<vector<complex<double>>> ff;
     string runtime;
 };
 
@@ -112,9 +116,13 @@ void threadfunc(double Wi, double Wf, double mu, vector<double> xi, int nsteps, 
             pointRes.Ef = prob->getEf();
             pointRes.Q = prob->getQ();
             pointRes.p = prob->getRho();
+            pointRes.U0 = prob->getU0();
+            pointRes.J0 = prob->getJ0();
             pointRes.b0 = prob->getB0();
             pointRes.bf = prob->getBf();
-            pointRes.bs = prob->getBs();
+            pointRes.f0 = prob->getF0();
+            pointRes.ff = prob->getFf();
+//            pointRes.bs = prob->getBs();
             pointRes.runtime = prob->getRuntime();
         }
         catch (std::exception& e) {
@@ -124,9 +132,13 @@ void threadfunc(double Wi, double Wf, double mu, vector<double> xi, int nsteps, 
             pointRes.Ef = numeric_limits<double>::quiet_NaN();
             pointRes.Q = numeric_limits<double>::quiet_NaN();
             pointRes.p = numeric_limits<double>::quiet_NaN();
-            pointRes.b0 = vector<double>();
-            pointRes.bf = vector<double>();
-            pointRes.bs = vector<vector<double>>();
+            pointRes.U0 = numeric_limits<double>::quiet_NaN();
+            pointRes.J0 = vector<double>(L, numeric_limits<double>::quiet_NaN());
+            pointRes.b0 = vector<complex<double>>(L, numeric_limits<double>::quiet_NaN());
+            pointRes.bf = vector<complex<double>>(L, numeric_limits<double>::quiet_NaN());
+            pointRes.f0 = vector<vector<complex<double>>>(L, vector<complex<double>>(dim, numeric_limits<double>::quiet_NaN()));
+            pointRes.ff = vector<vector<complex<double>>>(L, vector<complex<double>>(dim, numeric_limits<double>::quiet_NaN()));
+//            pointRes.bs = vector<vector<double>>();
             pointRes.runtime = "Failed";
         }
 
@@ -283,9 +295,13 @@ int main(int argc, char** argv) {
     vector<double> Efres;
     vector<double> Qres;
     vector<double> pres;
-    vector<vector<double>> b0res;
-    vector<vector<double>> bfres;
-    vector<vector<vector<double>>> bsres;
+    vector<double> U0res;
+    vector<vector<double>> J0res;
+    vector<vector<complex<double>>> b0res;
+    vector<vector<complex<double>>> bfres;
+    vector<vector<vector<complex<double>>>> f0res;
+    vector<vector<vector<complex<double>>>> ffres;
+//    vector<vector<vector<double>>> bsres;
     vector<string> runtimeres;
 
     for (results ires : res) {
@@ -294,9 +310,13 @@ int main(int argc, char** argv) {
         Efres.push_back(ires.Ef);
         Qres.push_back(ires.Q);
         pres.push_back(ires.p);
+        U0res.push_back(ires.U0);
+        J0res.push_back(ires.J0);
         b0res.push_back(ires.b0);
         bfres.push_back(ires.bf);
-        bsres.push_back(ires.bs);
+        f0res.push_back(ires.f0);
+        ffres.push_back(ires.ff);
+//        bsres.push_back(ires.bs);
         runtimeres.push_back(ires.runtime);
     }
 
@@ -305,9 +325,13 @@ int main(int argc, char** argv) {
     printMath(os, "Efres", resi, Efres);
     printMath(os, "Qres", resi, Qres);
     printMath(os, "pres", resi, pres);
+    printMath(os, "U0res", resi, U0res);
+    printMath(os, "J0res", resi, J0res);
     printMath(os, "b0res", resi, b0res);
     printMath(os, "bfres", resi, bfres);
-    printMath(os, "bsres", resi, bsres);
+    printMath(os, "f0res", resi, f0res);
+    printMath(os, "ffres", resi, ffres);
+//    printMath(os, "bsres", resi, bsres);
     printMath(os, "runtime", resi, runtimeres);
 
     ptime end = microsec_clock::local_time();

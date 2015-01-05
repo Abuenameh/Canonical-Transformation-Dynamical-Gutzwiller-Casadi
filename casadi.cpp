@@ -412,7 +412,7 @@ namespace casadi {
 
 //boost::mutex problem_mutex;
 
-DynamicsProblem::DynamicsProblem(double Wi, double Wf, double mu_, vector<double>& xi, vector<double>& f0) : mu(mu_) {
+DynamicsProblem::DynamicsProblem(double Wi, double Wf, double mu_, vector<double>& xi, vector<double>& f0_) : mu(mu_) {
 
     fin = SX::sym("f", 1, 1, 2 * L * dim);
     dU = SX::sym("dU", 1, 1, L);
@@ -493,9 +493,20 @@ DynamicsProblem::DynamicsProblem(double Wi, double Wf, double mu_, vector<double
     lopt->set_upper_bounds(1);
     lopt->set_min_objective(energyfunc, this);
 
-    setInitial(f0);
+    setInitial(f0_);
     solve();
 
+        f0 = vector<vector<complex<double>>>(L, vector<complex<double>>(dim));
+        for (int i = 0; i < L; i++) {
+            for (int n = 0; n <= nmax; n++) {
+                f0[i][n] = complex<double>(x0[2 * (i * dim + n)], x0[2 * (i * dim + n) + 1]);
+            }
+            double nrm = sqrt(abs(dot(f0[i], f0[i])));
+            for (int n = 0; n <= nmax; n++) {
+                f0[i][n] /= nrm;
+            }
+        }
+        
     SX HSr = Sdt;
     SX HSi = -E;
     HSr = substitute(vector<SX>{HSr}, fin, xs)[0];
@@ -614,18 +625,19 @@ void DynamicsProblem::evolve(int nsteps) {
             xf.push_back(xfm[i].getValue());
         }
 
-        vector<vector<complex<double>>> f0(L, vector<complex<double>>(dim));
-        for (int i = 0; i < L; i++) {
-            for (int n = 0; n <= nmax; n++) {
-                f0[i][n] = complex<double>(x0[2 * (i * dim + n)], x0[2 * (i * dim + n) + 1]);
-            }
-            double nrm = sqrt(abs(dot(f0[i], f0[i])));
-            for (int n = 0; n <= nmax; n++) {
-                f0[i][n] /= nrm;
-            }
-        }
+//        vector<vector<complex<double>>> f0(L, vector<complex<double>>(dim));
+//        for (int i = 0; i < L; i++) {
+//            for (int n = 0; n <= nmax; n++) {
+//                f0[i][n] = complex<double>(x0[2 * (i * dim + n)], x0[2 * (i * dim + n) + 1]);
+//            }
+//            double nrm = sqrt(abs(dot(f0[i], f0[i])));
+//            for (int n = 0; n <= nmax; n++) {
+//                f0[i][n] /= nrm;
+//            }
+//        }
         
-        vector<vector<complex<double>>> ff(L, vector<complex<double>>(dim));
+//        vector<vector<complex<double>>> ff(L, vector<complex<double>>(dim));
+        ff = vector<vector<complex<double>>>(L, vector<complex<double>>(dim));
         for (int i = 0; i < L; i++) {
             for (int n = 0; n <= nmax; n++) {
                 ff[i][n] = complex<double>(xf[2 * (i * dim + n)], xf[2 * (i * dim + n) + 1]);
@@ -636,17 +648,23 @@ void DynamicsProblem::evolve(int nsteps) {
             }
         }
         
-        vector<complex<double>> bc0(L), bcf(L);
+        b0 = vector<complex<double>>(L);
+        bf = vector<complex<double>>(L);
         for (int i = 0; i < L; i++) {
-            bc0[i] = b(f0, i, J0, U00);
-            bcf[i] = b(ff, i, J0, U00);
+            b0[i] = b(f0, i, J0, U00);
+            bf[i] = b(ff, i, J0, U00);
         }
-        b0 = vector<double>(L);
-        bf = vector<double>(L);
-        for (int i = 0; i < L; i++) {
-            b0[i] = abs(bc0[i]);
-            bf[i] = abs(bcf[i]);
-        }
+//        vector<complex<double>> bc0(L), bcf(L);
+//        for (int i = 0; i < L; i++) {
+//            bc0[i] = b(f0, i, J0, U00);
+//            bcf[i] = b(ff, i, J0, U00);
+//        }
+//        b0 = vector<double>(L);
+//        bf = vector<double>(L);
+//        for (int i = 0; i < L; i++) {
+//            b0[i] = abs(bc0[i]);
+//            bf[i] = abs(bcf[i]);
+//        }
 
     vector<double> grad;
     E0 = E(x0, grad);

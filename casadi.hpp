@@ -50,11 +50,15 @@ public:
     
     double getQ() { return Q; }
     double getRho() { return pd; }
-    vector<vector<double>> getBs() { return bv; }
-    vector<double> getB0() { return b0; }
-    vector<double> getBf() { return bf; }
+//    vector<vector<double>> getBs() { return bv; }
+    vector<complex<double>> getB0() { return b0; }
+    vector<complex<double>> getBf() { return bf; }
     double getEi() { return E0; }
     double getEf() { return Ef; }
+    double getU0() { return U00; }
+    vector<double> getJ0() { return J0; }
+    vector<vector<complex<double>>> getF0() { return f0; }
+    vector<vector<complex<double>>> getFf() { return ff; }
     
     void start() 
     {
@@ -127,9 +131,13 @@ private:
     double Ef;
     double Q;
     double pd;
-    vector<vector<double>> bv;
-    vector<double> b0;
-    vector<double> bf;
+//    vector<vector<double>> bv;
+    vector<complex<double>> b0;
+    vector<complex<double>> bf;
+    
+    vector<vector<complex<double>>> f0;
+    vector<vector<complex<double>>> ff;
+    
 };
 
 double energyfunc(const vector<double>& x, vector<double>& grad, void *data);
