@@ -36,7 +36,7 @@ SX UW(SX W) {
 complex<double> dot(vector<complex<double>>&v, vector<complex<double>>&w) {
     complex<double> res = 0;
     for (int i = 0; i < v.size(); i++) {
-        res += conj(v[i]) * w[i];
+        res += ~v[i] * w[i];
     }
     return res;
 }
@@ -44,7 +44,7 @@ complex<double> dot(vector<complex<double>>&v, vector<complex<double>>&w) {
 complex<double> b0(vector<vector<complex<double>>>& f, int i) {
     complex<double> bi = 0;
     for (int n = 1; n <= nmax; n++) {
-        bi += sqrt(1.0 * n) * ~f[i][n - 1] * f[i][n];
+        bi += sqrt(1.0 * n) * ~f[i][n] * f[i][n - 1];
     }
     return bi;
 }
@@ -57,16 +57,16 @@ complex<double> b1(vector<vector<complex<double>>>& f, int i, vector<double>& J,
     for (int n = 0; n < nmax; n++) {
         for (int m = 1; m <= nmax; m++) {
             if (n != m - 1) {
-                bi += -J[i] * g2(n, m) / eps(U, n, m) * sqrt(1.0 * n + 1) * conj(f[j2][m - 1]) * f[j2][m] * (conj(f[i][n + 1]) * f[i][n + 1] - conj(f[i][n]) * f[i][n]);
-                bi += -J[j1] * g2(n, m) / eps(U, n, m) * sqrt(1.0 * n + 1) * conj(f[j1][m - 1]) * f[j1][m] * (conj(f[i][n + 1]) * f[i][n + 1] - conj(f[i][n]) * f[i][n]);
+                bi += -J[i] * g2(n, m) / eps(U, n, m) * sqrt(1.0 * n + 1) * ~f[j2][m - 1] * f[j2][m] * (~f[i][n + 1] * f[i][n + 1] - ~f[i][n] * f[i][n]);
+                bi += -J[j1] * g2(n, m) / eps(U, n, m) * sqrt(1.0 * n + 1) * ~f[j1][m - 1] * f[j1][m] * (~f[i][n + 1] * f[i][n + 1] - ~f[i][n] * f[i][n]);
 
                 if (m < nmax) {
-                    bi += -J[i] * g2(n, m) / eps(U, n, m) * sqrt(1.0 * m + 1) * conj(f[j2][n + 1]) * f[j2][n] * conj(f[i][m - 1]) * f[i][m + 1];
-                    bi += -J[j1] * g2(n, m) / eps(U, n, m) * sqrt(1.0 * m + 1) * conj(f[j1][n + 1]) * f[j1][n] * conj(f[i][m - 1]) * f[i][m + 1];
+                    bi += -J[i] * g2(n, m) / eps(U, n, m) * sqrt(1.0 * m + 1) * ~f[j2][n + 1] * f[j2][n] * ~f[i][m - 1] * f[i][m + 1];
+                    bi += -J[j1] * g2(n, m) / eps(U, n, m) * sqrt(1.0 * m + 1) * ~f[j1][n + 1] * f[j1][n] * ~f[i][m - 1] * f[i][m + 1];
                 }
                 if (m > 1) {
-                    bi += J[i] * g2(n, m) / eps(U, n, m) * sqrt(1.0 * m - 1) * conj(f[j2][n + 1]) * f[j2][n] * conj(f[i][m - 2]) * f[i][m];
-                    bi += J[j1] * g2(n, m) / eps(U, n, m) * sqrt(1.0 * m - 1) * conj(f[j1][n + 1]) * f[j1][n] * conj(f[i][m - 2]) * f[i][m];
+                    bi += J[i] * g2(n, m) / eps(U, n, m) * sqrt(1.0 * m - 1) * ~f[j2][n + 1] * f[j2][n] * ~f[i][m - 2] * f[i][m];
+                    bi += J[j1] * g2(n, m) / eps(U, n, m) * sqrt(1.0 * m - 1) * ~f[j1][n + 1] * f[j1][n] * ~f[i][m - 2] * f[i][m];
                 }
             }
         }
@@ -80,24 +80,24 @@ complex<double> bf1(vector<vector<complex<double>>>& f, int k, int i, int j, int
     if (b == i && q == n + 1 && j == k) {
         if (a != k) {
             if (m >= 2) {
-                bi -= (n + 1) * sqrt(1.0 * m * (m - 1) * (p + 1)) * conj(f[i][n]) * conj(f[a][p + 1]) * conj(f[k][m - 2]) * f[i][n] * f[a][p] * f[k][m];
-                bi += (n + 1) * sqrt(1.0 * m * (m - 1) * (p + 1)) * conj(f[i][n + 1]) * conj(f[a][p + 1]) * conj(f[k][m - 2]) * f[i][n + 1] * f[a][p] * f[k][m];
+                bi -= (n + 1) * sqrt(1.0 * m * (m - 1) * (p + 1)) * ~f[i][n] * ~f[a][p + 1] * ~f[k][m - 2] * f[i][n] * f[a][p] * f[k][m];
+                bi += (n + 1) * sqrt(1.0 * m * (m - 1) * (p + 1)) * ~f[i][n + 1] * ~f[a][p + 1] * ~f[k][m - 2] * f[i][n + 1] * f[a][p] * f[k][m];
             }
             if (m < nmax) {
-                bi += (n + 1) * sqrt(1.0 * m * (m + 1) * (p + 1)) * conj(f[i][n]) * conj(f[a][p + 1]) * conj(f[k][m - 1]) * f[i][n] * f[a][p] * f[k][m + 1];
-                bi -= (n + 1) * sqrt(1.0 * m * (m + 1) * (p + 1)) * conj(f[i][n + 1]) * conj(f[a][p + 1]) * conj(f[k][m - 1]) * f[i][n + 1] * f[a][p] * f[k][m + 1];
+                bi += (n + 1) * sqrt(1.0 * m * (m + 1) * (p + 1)) * ~f[i][n] * ~f[a][p + 1] * ~f[k][m - 1] * f[i][n] * f[a][p] * f[k][m + 1];
+                bi -= (n + 1) * sqrt(1.0 * m * (m + 1) * (p + 1)) * ~f[i][n + 1] * ~f[a][p + 1] * ~f[k][m - 1] * f[i][n + 1] * f[a][p] * f[k][m + 1];
             }
         }
         else {
             if (p == m - 1) {
                 if (m < nmax) {
-                    bi += m * (n + 1) * sqrt(1.0 * m + 1) * conj(f[i][n]) * conj(f[k][m]) * f[i][n] * f[k][m + 1];
-                    bi -= m * (n + 1) * sqrt(1.0 * m + 1) * conj(f[i][n + 1]) * conj(f[k][m]) * f[i][n + 1] * f[k][m + 1];
+                    bi += m * (n + 1) * sqrt(1.0 * m + 1) * ~f[i][n] * ~f[k][m] * f[i][n] * f[k][m + 1];
+                    bi -= m * (n + 1) * sqrt(1.0 * m + 1) * ~f[i][n + 1] * ~f[k][m] * f[i][n + 1] * f[k][m + 1];
                 }
             }
             else if (p == m - 2) {
-                bi -= (m - 1) * (n + 1) * sqrt(1.0 * m) * conj(f[i][n]) * conj(f[k][m - 1]) * f[i][n] * f[k][m];
-                bi += (m - 1) * (n + 1) * sqrt(1.0 * m) * conj(f[i][n + 1]) * conj(f[k][m - 1]) * f[i][n + 1] * f[k][m];
+                bi -= (m - 1) * (n + 1) * sqrt(1.0 * m) * ~f[i][n] * ~f[k][m - 1] * f[i][n] * f[k][m];
+                bi += (m - 1) * (n + 1) * sqrt(1.0 * m) * ~f[i][n + 1] * ~f[k][m - 1] * f[i][n + 1] * f[k][m];
             }
         }
     }
@@ -109,30 +109,30 @@ complex<double> bf2(vector<vector<complex<double>>>& f, int k, int i, int j, int
     if (b == k && j == k) {
         if (a != i) {
             if (q == m - 1 && m < nmax) {
-                bi += sqrt(1.0 * (p + 1) * (n + 1) * m * (m + 1) * q) * conj(f[i][n + 1]) * conj(f[a][p + 1]) * conj(f[k][m - 2]) * f[i][n] * f[a][p] * f[k][m + 1];
+                bi += sqrt(1.0 * (p + 1) * (n + 1) * m * (m + 1) * q) * ~f[i][n + 1] * ~f[a][p + 1] * ~f[k][m - 2] * f[i][n] * f[a][p] * f[k][m + 1];
             }
             if (q == m + 2) {
-                bi -= sqrt(1.0 * (p + 1) * (n + 1) * m * (m + 1) * q) * conj(f[i][n + 1]) * conj(f[a][p + 1]) * conj(f[k][m - 1]) * f[i][n] * f[a][p] * f[k][m + 2];
+                bi -= sqrt(1.0 * (p + 1) * (n + 1) * m * (m + 1) * q) * ~f[i][n + 1] * ~f[a][p + 1] * ~f[k][m - 1] * f[i][n] * f[a][p] * f[k][m + 2];
             }
             if (q == m - 2) {
-                bi -= sqrt(1.0 * (p + 1) * (n + 1) * (m - 1) * m * q) * conj(f[i][n + 1]) * conj(f[a][p + 1]) * conj(f[k][m - 3]) * f[i][n] * f[a][p] * f[k][m];
+                bi -= sqrt(1.0 * (p + 1) * (n + 1) * (m - 1) * m * q) * ~f[i][n + 1] * ~f[a][p + 1] * ~f[k][m - 3] * f[i][n] * f[a][p] * f[k][m];
             }
             if (q == m + 1 && m >= 2) {
-                bi += sqrt(1.0 * (p + 1) * (n + 1) * (m - 1) * m * q) * conj(f[i][n + 1]) * conj(f[a][p + 1]) * conj(f[k][m - 2]) * f[i][n] * f[a][p] * f[k][m + 1];
+                bi += sqrt(1.0 * (p + 1) * (n + 1) * (m - 1) * m * q) * ~f[i][n + 1] * ~f[a][p + 1] * ~f[k][m - 2] * f[i][n] * f[a][p] * f[k][m + 1];
             }
         }
         else if (p == n + 1) {
             if (q == m - 1 && n < nmax - 1 && m < nmax) {
-                bi += sqrt(1.0 * (n + 2) * (n + 1) * m * (m + 1) * (m - 1)) * conj(f[i][n + 2]) * conj(f[k][m - 2]) * f[i][n] * f[k][m + 1];
+                bi += sqrt(1.0 * (n + 2) * (n + 1) * m * (m + 1) * (m - 1)) * ~f[i][n + 2] * ~f[k][m - 2] * f[i][n] * f[k][m + 1];
             }
             if (q == m + 2 && n < nmax - 1) {
-                bi -= sqrt(1.0 * (n + 2) * (n + 1) * m * (m + 1) * (m + 2)) * conj(f[i][n + 2]) * conj(f[k][m - 1]) * f[i][n] * f[k][m + 2];
+                bi -= sqrt(1.0 * (n + 2) * (n + 1) * m * (m + 1) * (m + 2)) * ~f[i][n + 2] * ~f[k][m - 1] * f[i][n] * f[k][m + 2];
             }
             if (q == m - 2 && n < nmax - 1) {
-                bi -= sqrt(1.0 * (n + 2) * (n + 1) * (m - 1) * m * (m - 2)) * conj(f[i][n + 2]) * conj(f[k][m - 3]) * f[i][n] * f[k][m];
+                bi -= sqrt(1.0 * (n + 2) * (n + 1) * (m - 1) * m * (m - 2)) * ~f[i][n + 2] * ~f[k][m - 3] * f[i][n] * f[k][m];
             }
             if (q == m + 1 && n < nmax - 1 && m >= 2) {
-                bi += sqrt(1.0 * (n + 2) * (n + 1) * (m - 1) * m * (m + 1)) * conj(f[i][n + 2]) * conj(f[k][m - 2]) * f[i][n] * f[k][m + 1];
+                bi += sqrt(1.0 * (n + 2) * (n + 1) * (m - 1) * m * (m + 1)) * ~f[i][n + 2] * ~f[k][m - 2] * f[i][n] * f[k][m + 1];
             }
         }
     }
@@ -144,30 +144,30 @@ complex<double> bf3(vector<vector<complex<double>>>& f, int k, int i, int j, int
     if (i == a && j == k) {
         if (b != k) {
             if (p == n + 1 && m < nmax) {
-                bi += sqrt(1.0 * q * (n + 1) * (n + 2) * m * (m + 1)) * conj(f[i][n + 2]) * conj(f[b][q - 1]) * conj(f[k][m - 1]) * f[i][n] * f[b][q] * f[k][m + 1];
+                bi += sqrt(1.0 * q * (n + 1) * (n + 2) * m * (m + 1)) * ~f[i][n + 2] * ~f[b][q - 1] * ~f[k][m - 1] * f[i][n] * f[b][q] * f[k][m + 1];
             }
             if (p == n + 1 && m >= 2) {
-                bi -= sqrt(1.0 * q * (n + 1) * (n + 2) * (m - 1) * m) * conj(f[i][n + 2]) * conj(f[b][q - 1]) * conj(f[k][m - 2]) * f[i][n] * f[b][q] * f[k][m];
+                bi -= sqrt(1.0 * q * (n + 1) * (n + 2) * (m - 1) * m) * ~f[i][n + 2] * ~f[b][q - 1] * ~f[k][m - 2] * f[i][n] * f[b][q] * f[k][m];
             }
             if (p == n - 1 && m < nmax) {
-                bi -= sqrt(1.0 * q * n * (n + 1) * m * (m + 1)) * conj(f[i][n + 1]) * conj(f[b][q - 1]) * conj(f[k][m - 1]) * f[i][n - 1] * f[b][q] * f[k][m + 1];
+                bi -= sqrt(1.0 * q * n * (n + 1) * m * (m + 1)) * ~f[i][n + 1] * ~f[b][q - 1] * ~f[k][m - 1] * f[i][n - 1] * f[b][q] * f[k][m + 1];
             }
             if (p == n - 1 && m >= 2) {
-                bi += sqrt(1.0 * q * n * (n + 1) * (m - 1) * m) * conj(f[i][n + 1]) * conj(f[b][q - 1]) * conj(f[k][m - 2]) * f[i][n - 1] * f[b][q] * f[k][m];
+                bi += sqrt(1.0 * q * n * (n + 1) * (m - 1) * m) * ~f[i][n + 1] * ~f[b][q - 1] * ~f[k][m - 2] * f[i][n - 1] * f[b][q] * f[k][m];
             }
         }
         else {
             if (q == m + 2 && p == n + 1) {
-                bi += sqrt(1.0 * (n + 1) * (n + 2) * m * (m + 1) * (m + 2)) * conj(f[i][n + 2]) * conj(f[k][m - 1]) * f[i][n] * f[k][m + 2];
+                bi += sqrt(1.0 * (n + 1) * (n + 2) * m * (m + 1) * (m + 2)) * ~f[i][n + 2] * ~f[k][m - 1] * f[i][n] * f[k][m + 2];
             }
             if (q == m + 1 && m >= 2 && p == n + 1) {
-                bi -= sqrt(1.0 * (n + 1) * (n + 2) * (m - 1) * m * (m + 1)) * conj(f[i][n + 2]) * conj(f[k][m - 2]) * f[i][n] * f[k][m + 1];
+                bi -= sqrt(1.0 * (n + 1) * (n + 2) * (m - 1) * m * (m + 1)) * ~f[i][n + 2] * ~f[k][m - 2] * f[i][n] * f[k][m + 1];
             }
             if (q == m + 2 && p == n - 1) {
-                bi -= sqrt(1.0 * n * (n + 1) * m * (m + 1) * (m + 2)) * conj(f[i][n + 1]) * conj(f[k][m - 1]) * f[i][n - 1] * f[k][m + 2];
+                bi -= sqrt(1.0 * n * (n + 1) * m * (m + 1) * (m + 2)) * ~f[i][n + 1] * ~f[k][m - 1] * f[i][n - 1] * f[k][m + 2];
             }
             if (q == m + 1 && m >= 2 && p == n - 1) {
-                bi += sqrt(1.0 * n * (n + 1) * (m - 1) * m * (m + 1)) * conj(f[i][n + 1]) * conj(f[k][m - 2]) * f[i][n - 1] * f[k][m + 1];
+                bi += sqrt(1.0 * n * (n + 1) * (m - 1) * m * (m + 1)) * ~f[i][n + 1] * ~f[k][m - 2] * f[i][n - 1] * f[k][m + 1];
             }
         }
     }
@@ -179,30 +179,30 @@ complex<double> bf4(vector<vector<complex<double>>>& f, int k, int i, int j, int
     if (a == k && j == k) {
         if (b != i) {
             if (p == m - 1 && m < nmax) {
-                bi += m * sqrt(1.0 * (n + 1) * q * (m + 1)) * conj(f[i][n + 1]) * conj(f[b][q - 1]) * conj(f[k][m]) * f[i][n] * f[b][q] * f[k][m + 1];
+                bi += m * sqrt(1.0 * (n + 1) * q * (m + 1)) * ~f[i][n + 1] * ~f[b][q - 1] * ~f[k][m] * f[i][n] * f[b][q] * f[k][m + 1];
             }
             if (p == m - 2) {
-                bi -= (m - 1) * sqrt(1.0 * (n + 1) * q * m) * conj(f[i][n + 1]) * conj(f[b][q - 1]) * conj(f[k][m - 1]) * f[i][n] * f[b][q] * f[k][m];
+                bi -= (m - 1) * sqrt(1.0 * (n + 1) * q * m) * ~f[i][n + 1] * ~f[b][q - 1] * ~f[k][m - 1] * f[i][n] * f[b][q] * f[k][m];
             }
             if (p == m) {
-                bi -= (m + 1) * sqrt(1.0 * (n + 1) * q * m) * conj(f[i][n + 1]) * conj(f[b][q - 1]) * conj(f[k][m - 1]) * f[i][n] * f[b][q] * f[k][m];
+                bi -= (m + 1) * sqrt(1.0 * (n + 1) * q * m) * ~f[i][n + 1] * ~f[b][q - 1] * ~f[k][m - 1] * f[i][n] * f[b][q] * f[k][m];
             }
             if (p == m - 1 && m >= 2) {
-                bi += m * sqrt(1.0 * (n + 1) * q * (m - 1)) * conj(f[i][n + 1]) * conj(f[b][q - 1]) * conj(f[k][m - 2]) * f[i][n] * f[b][q] * f[k][m - 1];
+                bi += m * sqrt(1.0 * (n + 1) * q * (m - 1)) * ~f[i][n + 1] * ~f[b][q - 1] * ~f[k][m - 2] * f[i][n] * f[b][q] * f[k][m - 1];
             }
         }
         else if (n == q - 1) {
             if (p == m - 1 && m < nmax) {
-                bi += (n + 1) * m * sqrt(1.0 * (m + 1)) * conj(f[i][n + 1]) * conj(f[k][m]) * f[i][n + 1] * f[k][m + 1];
+                bi += (n + 1) * m * sqrt(1.0 * (m + 1)) * ~f[i][n + 1] * ~f[k][m] * f[i][n + 1] * f[k][m + 1];
             }
             if (p == m - 2) {
-                bi -= (n + 1) * (m - 1) * sqrt(1.0 * m) * conj(f[i][n + 1]) * conj(f[k][m - 1]) * f[i][n + 1] * f[k][m];
+                bi -= (n + 1) * (m - 1) * sqrt(1.0 * m) * ~f[i][n + 1] * ~f[k][m - 1] * f[i][n + 1] * f[k][m];
             }
             if (p == m) {
-                bi -= (n + 1) * (m + 1) * sqrt(1.0 * m) * conj(f[i][n + 1]) * conj(f[k][m - 1]) * f[i][n + 1] * f[k][m];
+                bi -= (n + 1) * (m + 1) * sqrt(1.0 * m) * ~f[i][n + 1] * ~f[k][m - 1] * f[i][n + 1] * f[k][m];
             }
             if (p == m - 1 && m >= 2) {
-                bi += (n + 1) * m * sqrt(1.0 * (m - 1)) * conj(f[i][n + 1]) * conj(f[k][m - 2]) * f[i][n + 1] * f[k][m - 1];
+                bi += (n + 1) * m * sqrt(1.0 * (m - 1)) * ~f[i][n + 1] * ~f[k][m - 2] * f[i][n + 1] * f[k][m - 1];
             }
         }
     }
@@ -214,24 +214,24 @@ complex<double> bf5(vector<vector<complex<double>>>& f, int k, int i, int j, int
     if (i == b && i == k) {
         if (j != a) {
             if (q == n + 1) {
-                bi += 2 * (n + 1) * sqrt(1.0 * m * (p + 1) * (n + 1)) * conj(f[j][m - 1]) * conj(f[a][p + 1]) * conj(f[k][n]) * f[j][m] * f[a][p] * f[k][n + 1];
+                bi += 2 * (n + 1) * sqrt(1.0 * m * (p + 1) * (n + 1)) * ~f[j][m - 1] * ~f[a][p + 1] * ~f[k][n] * f[j][m] * f[a][p] * f[k][n + 1];
             }
             if (q == n) {
-                bi -= (n + 1) * sqrt(1.0 * m * (p + 1) * n) * conj(f[j][m - 1]) * conj(f[a][p + 1]) * conj(f[k][n - 1]) * f[j][m] * f[a][p] * f[k][n];
+                bi -= (n + 1) * sqrt(1.0 * m * (p + 1) * n) * ~f[j][m - 1] * ~f[a][p + 1] * ~f[k][n - 1] * f[j][m] * f[a][p] * f[k][n];
             }
             if (q == n + 2) {
-                bi -= (n + 1) * sqrt(1.0 * m * (p + 1) * (n + 2)) * conj(f[j][m - 1]) * conj(f[a][p + 1]) * conj(f[k][n + 1]) * f[j][m] * f[a][p] * f[k][n + 2];
+                bi -= (n + 1) * sqrt(1.0 * m * (p + 1) * (n + 2)) * ~f[j][m - 1] * ~f[a][p + 1] * ~f[k][n + 1] * f[j][m] * f[a][p] * f[k][n + 2];
             }
         }
         else if (p == m - 1) {
             if (q == n + 1) {
-                bi += 2 * (n + 1) * m * sqrt(1.0 * (n + 1)) * conj(f[j][p + 1]) * conj(f[k][n]) * f[j][m] * f[k][n + 1];
+                bi += 2 * (n + 1) * m * sqrt(1.0 * (n + 1)) * ~f[j][p + 1] * ~f[k][n] * f[j][m] * f[k][n + 1];
             }
             if (q == n) {
-                bi -= (n + 1) * m * sqrt(1.0 * n) * conj(f[j][p + 1]) * conj(f[k][n - 1]) * f[j][m] * f[k][n];
+                bi -= (n + 1) * m * sqrt(1.0 * n) * ~f[j][p + 1] * ~f[k][n - 1] * f[j][m] * f[k][n];
             }
             if (q == n + 2) {
-                bi -= (n + 1) * m * sqrt(1.0 * (n + 2)) * conj(f[j][p + 1]) * conj(f[k][n + 1]) * f[j][m] * f[k][n + 2];
+                bi -= (n + 1) * m * sqrt(1.0 * (n + 2)) * ~f[j][p + 1] * ~f[k][n + 1] * f[j][m] * f[k][n + 2];
             }
         }
     }
@@ -243,24 +243,24 @@ complex<double> bf6(vector<vector<complex<double>>>& f, int k, int i, int j, int
     if (i == k && j == b) {
         if (i != a) {
             if (q == m - 1) {
-                bi += (n + 1) * sqrt(1.0 * (p + 1) * (m - 1) * m) * conj(f[j][m - 2]) * conj(f[a][p + 1]) * f[j][m] * f[a][p] * (conj(f[k][n + 1]) * f[k][n + 1] - conj(f[k][n]) * f[k][n]);
+                bi += (n + 1) * sqrt(1.0 * (p + 1) * (m - 1) * m) * ~f[j][m - 2] * ~f[a][p + 1] * f[j][m] * f[a][p] * (~f[k][n + 1] * f[k][n + 1] - ~f[k][n] * f[k][n]);
             }
             if (q == m + 1) {
-                bi -= (n + 1) * sqrt(1.0 * (p + 1) * (m + 1) * m) * conj(f[j][m - 1]) * conj(f[a][p + 1]) * f[j][m + 1] * f[a][p] * (conj(f[k][n + 1]) * f[k][n + 1] - conj(f[k][n]) * f[k][n]);
+                bi -= (n + 1) * sqrt(1.0 * (p + 1) * (m + 1) * m) * ~f[j][m - 1] * ~f[a][p + 1] * f[j][m + 1] * f[a][p] * (~f[k][n + 1] * f[k][n + 1] - ~f[k][n] * f[k][n]);
             }
         }
         else {
             if (p == n + 1 && q == m - 1) {
-                bi += (n + 1) * sqrt(1.0 * m * (m - 1) * (n + 2)) * conj(f[j][m - 2]) * conj(f[k][n + 2]) * f[j][m] * f[k][n + 1];
+                bi += (n + 1) * sqrt(1.0 * m * (m - 1) * (n + 2)) * ~f[j][m - 2] * ~f[k][n + 2] * f[j][m] * f[k][n + 1];
             }
             if (p == n + 1 && q == m + 1) {
-                bi -= (n + 1) * sqrt(1.0 * m * (m + 1) * (n + 2)) * conj(f[j][m - 1]) * conj(f[k][n + 2]) * f[j][m + 1] * f[k][n + 1];
+                bi -= (n + 1) * sqrt(1.0 * m * (m + 1) * (n + 2)) * ~f[j][m - 1] * ~f[k][n + 2] * f[j][m + 1] * f[k][n + 1];
             }
             if (p == n && q == m - 1) {
-                bi -= (n + 1) * sqrt(1.0 * m * (m - 1) * (n + 1)) * conj(f[j][m - 2]) * conj(f[k][n + 1]) * f[j][m] * f[k][n];
+                bi -= (n + 1) * sqrt(1.0 * m * (m - 1) * (n + 1)) * ~f[j][m - 2] * ~f[k][n + 1] * f[j][m] * f[k][n];
             }
             if (p == n && q == m + 1) {
-                bi += (n + 1) * sqrt(1.0 * m * (m + 1) * (n + 1)) * conj(f[j][m - 1]) * conj(f[k][n + 1]) * f[j][m + 1] * f[k][n];
+                bi += (n + 1) * sqrt(1.0 * m * (m + 1) * (n + 1)) * ~f[j][m - 1] * ~f[k][n + 1] * f[j][m + 1] * f[k][n];
             }
         }
     }
@@ -272,24 +272,24 @@ complex<double> bf7(vector<vector<complex<double>>>& f, int k, int i, int j, int
     if (i == k && i == a) {
         if (j != b) {
             if (p == n + 1) {
-                bi += (n + 1) * sqrt(1.0 * m * q * (p + 1)) * conj(f[j][m - 1]) * conj(f[b][q - 1]) * conj(f[k][n + 2]) * f[j][m] * f[b][q] * f[k][n + 1];
+                bi += (n + 1) * sqrt(1.0 * m * q * (p + 1)) * ~f[j][m - 1] * ~f[b][q - 1] * ~f[k][n + 2] * f[j][m] * f[b][q] * f[k][n + 1];
             }
             if (p == n) {
-                bi -= 2 * (n + 1) * sqrt(1.0 * m * q * (p + 1)) * conj(f[j][m - 1]) * conj(f[b][q - 1]) * conj(f[k][n + 1]) * f[j][m] * f[b][q] * f[k][n];
+                bi -= 2 * (n + 1) * sqrt(1.0 * m * q * (p + 1)) * ~f[j][m - 1] * ~f[b][q - 1] * ~f[k][n + 1] * f[j][m] * f[b][q] * f[k][n];
             }
             if (p == n - 1) {
-                bi += (n + 1) * sqrt(1.0 * m * q * (p + 1)) * conj(f[j][m - 1]) * conj(f[b][q - 1]) * conj(f[k][n]) * f[j][m] * f[b][q] * f[k][n - 1];
+                bi += (n + 1) * sqrt(1.0 * m * q * (p + 1)) * ~f[j][m - 1] * ~f[b][q - 1] * ~f[k][n] * f[j][m] * f[b][q] * f[k][n - 1];
             }
         }
         else if (m == q - 1) {
             if (p == n + 1) {
-                bi += (n + 1) * sqrt(1.0 * m * (m + 1) * (n + 2)) * conj(f[j][m - 1]) * conj(f[k][n + 2]) * f[j][m + 1] * f[k][n + 1];
+                bi += (n + 1) * sqrt(1.0 * m * (m + 1) * (n + 2)) * ~f[j][m - 1] * ~f[k][n + 2] * f[j][m + 1] * f[k][n + 1];
             }
             if (p == n) {
-                bi -= 2 * (n + 1) * sqrt(1.0 * m * (m + 1) * (n + 1)) * conj(f[j][m - 1]) * conj(f[k][n + 1]) * f[j][m + 1] * f[k][n];
+                bi -= 2 * (n + 1) * sqrt(1.0 * m * (m + 1) * (n + 1)) * ~f[j][m - 1] * ~f[k][n + 1] * f[j][m + 1] * f[k][n];
             }
             if (p == n - 1) {
-                bi += (n + 1) * sqrt(1.0 * m * (m + 1) * n) * conj(f[j][m - 1]) * conj(f[k][n]) * f[j][m + 1] * f[k][n - 1];
+                bi += (n + 1) * sqrt(1.0 * m * (m + 1) * n) * ~f[j][m - 1] * ~f[k][n] * f[j][m + 1] * f[k][n - 1];
             }
         }
     }
@@ -300,17 +300,17 @@ complex<double> bf8(vector<vector<complex<double>>>& f, int k, int i, int j, int
     complex<double> bi = 0;
     if (i == k && m == p + 1 && j == a) {
         if (i != b) {
-            bi += (n + 1) * m * sqrt(1.0 * q) * conj(f[j][m]) * conj(f[b][q - 1]) * conj(f[k][n + 1]) * f[j][m] * f[b][q] * f[k][n + 1];
-            bi -= (n + 1) * m * sqrt(1.0 * q) * conj(f[j][m - 1]) * conj(f[b][q - 1]) * conj(f[k][n + 1]) * f[j][m - 1] * f[b][q] * f[k][n + 1];
-            bi -= (n + 1) * m * sqrt(1.0 * q) * conj(f[j][m]) * conj(f[b][q - 1]) * conj(f[k][n]) * f[j][m] * f[b][q] * f[k][n];
-            bi += (n + 1) * m * sqrt(1.0 * q) * conj(f[j][m - 1]) * conj(f[b][q - 1]) * conj(f[k][n]) * f[j][m - 1] * f[b][q] * f[k][n];
+            bi += (n + 1) * m * sqrt(1.0 * q) * ~f[j][m] * ~f[b][q - 1] * ~f[k][n + 1] * f[j][m] * f[b][q] * f[k][n + 1];
+            bi -= (n + 1) * m * sqrt(1.0 * q) * ~f[j][m - 1] * ~f[b][q - 1] * ~f[k][n + 1] * f[j][m - 1] * f[b][q] * f[k][n + 1];
+            bi -= (n + 1) * m * sqrt(1.0 * q) * ~f[j][m] * ~f[b][q - 1] * ~f[k][n] * f[j][m] * f[b][q] * f[k][n];
+            bi += (n + 1) * m * sqrt(1.0 * q) * ~f[j][m - 1] * ~f[b][q - 1] * ~f[k][n] * f[j][m - 1] * f[b][q] * f[k][n];
         }
         else {
             if (q == n + 2) {
-                bi += (n + 1) * m * sqrt(1.0 * (n + 2)) * conj(f[k][n + 1]) * f[k][n + 2] * (conj(f[j][m]) * f[j][m] - conj(f[j][m - 1]) * f[j][m - 1]);
+                bi += (n + 1) * m * sqrt(1.0 * (n + 2)) * ~f[k][n + 1] * f[k][n + 2] * (~f[j][m] * f[j][m] - ~f[j][m - 1] * f[j][m - 1]);
             }
             if (q == n + 1) {
-                bi -= (n + 1) * m * sqrt(1.0 * (n + 1)) * conj(f[k][n]) * f[k][n + 1] * (conj(f[j][m]) * f[j][m] - conj(f[j][m - 1]) * f[j][m - 1]);
+                bi -= (n + 1) * m * sqrt(1.0 * (n + 1)) * ~f[k][n] * f[k][n + 1] * (~f[j][m] * f[j][m] - ~f[j][m - 1] * f[j][m - 1]);
             }
         }
     }
@@ -423,7 +423,7 @@ DynamicsProblem::DynamicsProblem(double Wi, double Wf, double mu_, vector<double
     tau = SX::sym("tau");
     Wt = if_else(t < tau, Wi + (Wf - Wi) * t / tau, Wf + (Wi - Wf) * (t - tau) / tau);
 
-    mu = 0.25;
+    mu = 0.5;
     SX Ut = 1;
     double Ji = 0.2;
     double Jf = 0.01;
@@ -451,8 +451,8 @@ DynamicsProblem::DynamicsProblem(double Wi, double Wf, double mu_, vector<double
     vector<SX> gsparams(params.begin(), params.end());
     gsparams.push_back(t);
     
-    SX E = energync();
-    SX S = canonicala();
+    SX E = energy();
+    SX S = canonical();
 
     SXFunction Sf(vector<SX>{t}, vector<SX>{S});
     Sf.init();
@@ -517,10 +517,10 @@ DynamicsProblem::DynamicsProblem(double Wi, double Wf, double mu_, vector<double
 
     ode = SX::sym("ode", 2 * L * dim);
     for (int i = 0; i < L * dim; i++) {
-//                ode[2 * i] = 0.5 * (HSrdftmp[2 * i] - HSidftmp[2 * i + 1]);
-//                ode[2 * i + 1] = 0.5 * (HSidftmp[2 * i] + HSrdftmp[2 * i + 1]);
-        ode[2 * i] = 0.5 * - HSidftmp[2 * i + 1];
-        ode[2 * i + 1] = 0.5 * HSidftmp[2 * i];
+                ode[2 * i] = 0.5 * (HSrdftmp[2 * i] - HSidftmp[2 * i + 1]);
+                ode[2 * i + 1] = 0.5 * (HSidftmp[2 * i] + HSrdftmp[2 * i + 1]);
+//        ode[2 * i] = 0.5 * - HSidftmp[2 * i + 1];
+//        ode[2 * i + 1] = 0.5 * HSidftmp[2 * i];
     }
     ode_func = SXFunction(daeIn("x", x, "t", t, "p", p), daeOut("ode", ode));
 
