@@ -33,7 +33,7 @@ using namespace nlopt;
 
 #include <casadi/interfaces/sundials/cvodes_interface.hpp>
 
-double UW(double W) {
+double UWi(double W) {
     return -2 * (g24 * g24) / Delta * (Ng * Ng * W * W) / ((Ng * Ng + W * W) * (Ng * Ng + W * W));
 }
 
@@ -173,7 +173,7 @@ int main(int argc, char** argv) {
 
     double mu = lexical_cast<double>(argv[4]);
 
-    double Ui = UW(Wi);
+    double Ui = UWi(Wi);
 
     double D = lexical_cast<double>(argv[5]);
 
@@ -235,7 +235,7 @@ int main(int argc, char** argv) {
         }
     }
 
-    //        double Ui = UW(Wi);
+    //        double Ui = UWi(Wi);
     double mui = mu * Ui;
 
     filesystem::ofstream os(resfile);

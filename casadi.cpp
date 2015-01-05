@@ -9,6 +9,18 @@ double energyfunc(const vector<double>& x, vector<double>& grad, void *data) {
     return prob->E(x, grad);
 }
 
+double JW(double W) {
+    return alpha * (W * W) / (Ng * Ng + W * W);
+}
+
+double JWij(double Wi, double Wj) {
+    return alpha * (Wi * Wj) / (sqrt(Ng * Ng + Wi * Wi) * sqrt(Ng * Ng + Wj * Wj));
+}
+
+double UW(double W) {
+    return -2 * (g24 * g24) / Delta * (Ng * Ng * W * W) / ((Ng * Ng + W * W) * (Ng * Ng + W * W));
+}
+
 SX JW(SX W) {
     return alpha * (W * W) / (Ng * Ng + W * W);
 }
@@ -32,7 +44,7 @@ complex<double> dot(vector<complex<double>>&v, vector<complex<double>>&w) {
 complex<double> b0(vector<vector<complex<double>>>& f, int i) {
     complex<double> bi = 0;
     for (int n = 1; n <= nmax; n++) {
-        bi += sqrt(1.0 * n) * f[i][n - 1] * f[i][n];
+        bi += sqrt(1.0 * n) * ~f[i][n - 1] * f[i][n];
     }
     return bi;
 }
@@ -381,9 +393,9 @@ complex<double> b3(vector<vector<complex<double>>>& f, int k, vector<double>& J,
 complex<double> b(vector<vector<complex<double>>>& f, int k, vector<double>& J, double U) {
     complex<double> bi = 0;
     bi += b0(f, k);
-    bi += b1(f, k, J, U);
-    bi += b2(f, k, J, U);
-    bi += b3(f, k, J, U);
+//    bi += b1(f, k, J, U);
+//    bi += b2(f, k, J, U);
+//    bi += b3(f, k, J, U);
     return bi;
 }
 
@@ -400,7 +412,7 @@ namespace casadi {
 
 //boost::mutex problem_mutex;
 
-DynamicsProblem::DynamicsProblem(double Wi, double Wf, double mu_, vector<double>& xi, vector<double>& f0) : mu(0.5/*mu_*/) {
+DynamicsProblem::DynamicsProblem(double Wi, double Wf, double mu_, vector<double>& xi, vector<double>& f0) : mu(mu_) {
 
     fin = SX::sym("f", 1, 1, 2 * L * dim);
     dU = SX::sym("dU", 1, 1, L);
@@ -411,23 +423,26 @@ DynamicsProblem::DynamicsProblem(double Wi, double Wf, double mu_, vector<double
     tau = SX::sym("tau");
     Wt = if_else(t < tau, Wi + (Wf - Wi) * t / tau, Wf + (Wi - Wf) * (t - tau) / tau);
 
+    mu = 0.25;
     SX Ut = 1;
     double Ji = 0.2;
     double Jf = 0.01;
     SX Jt = if_else(t < tau, Ji + (Jf - Ji) * t / tau, Jf + (Ji - Jf)*(t - tau) / tau);
     U0 = Ut;
 //    U0 = scale*UW(Wt);
+//    U0 = scale*UW(Wi);
     U00 = 1;
 //    U00 = scale*UW(Wi);
     J0 = vector<double>(L);
     for (int i = 0; i < L; i++) {
         J0[i] = Ji;
-//        J0[i] = scale*JWij(Wi * xi[i], Wi * xi[mod(i + 1)])
+//        J0[i] = scale*JWij(Wi * xi[i], Wi * xi[mod(i + 1)]);
         J[i] = Jt;
 //        J[i] = scale*JWij(Wt * xi[i], Wt * xi[mod(i + 1)]);
         //        J[i] = scale*JWij(Wt, Wt);
         //        Jp[i] = JWij(Wpt * xi[i], Wpt * xi[mod(i + 1)]);
-        dU[i] = scale * UW(Wt * xi[i]) - U0;
+        dU[i] = 0;
+//        dU[i] = scale * UW(Wt * xi[i]) - U0;
     }
 
     vector<SX> params;
@@ -436,7 +451,7 @@ DynamicsProblem::DynamicsProblem(double Wi, double Wf, double mu_, vector<double
     vector<SX> gsparams(params.begin(), params.end());
     gsparams.push_back(t);
     
-    SX E = energya();
+    SX E = energync();
     SX S = canonicala();
 
     SXFunction Sf(vector<SX>{t}, vector<SX>{S});
@@ -502,10 +517,10 @@ DynamicsProblem::DynamicsProblem(double Wi, double Wf, double mu_, vector<double
 
     ode = SX::sym("ode", 2 * L * dim);
     for (int i = 0; i < L * dim; i++) {
-                ode[2 * i] = 0.5 * (HSrdftmp[2 * i] - HSidftmp[2 * i + 1]);
-                ode[2 * i + 1] = 0.5 * (HSidftmp[2 * i] + HSrdftmp[2 * i + 1]);
-//        ode[2 * i] = 0.5 * - HSidftmp[2 * i + 1];
-//        ode[2 * i + 1] = 0.5 * HSidftmp[2 * i];
+//                ode[2 * i] = 0.5 * (HSrdftmp[2 * i] - HSidftmp[2 * i + 1]);
+//                ode[2 * i + 1] = 0.5 * (HSidftmp[2 * i] + HSrdftmp[2 * i + 1]);
+        ode[2 * i] = 0.5 * - HSidftmp[2 * i + 1];
+        ode[2 * i + 1] = 0.5 * HSidftmp[2 * i];
     }
     ode_func = SXFunction(daeIn("x", x, "t", t, "p", p), daeOut("ode", ode));
 
@@ -1208,7 +1223,7 @@ SX DynamicsProblem::canonical() {
         S += Sj2;
     }
 
-    return S.real();
+    return S.imag();
 }
 
 SX DynamicsProblem::energy0() {
