@@ -44,7 +44,7 @@ complex<double> dot(vector<complex<double>>&v, vector<complex<double>>&w) {
 complex<double> b0(vector<vector<complex<double>>>& f, int i) {
     complex<double> bi = 0;
     for (int n = 1; n <= nmax; n++) {
-        bi += sqrt(1.0 * n) * ~f[i][n] * f[i][n - 1];
+        bi += sqrt(1.0 * n) * ~f[i][n - 1] * f[i][n];
     }
     return bi;
 }
@@ -393,9 +393,9 @@ complex<double> b3(vector<vector<complex<double>>>& f, int k, vector<double>& J,
 complex<double> b(vector<vector<complex<double>>>& f, int k, vector<double>& J, double U) {
     complex<double> bi = 0;
     bi += b0(f, k);
-//    bi += b1(f, k, J, U);
-//    bi += b2(f, k, J, U);
-//    bi += b3(f, k, J, U);
+    bi += b1(f, k, J, U);
+    bi += b2(f, k, J, U);
+    bi += b3(f, k, J, U);
     return bi;
 }
 
@@ -423,26 +423,26 @@ DynamicsProblem::DynamicsProblem(double Wi, double Wf, double mu_, vector<double
     tau = SX::sym("tau");
     Wt = if_else(t < tau, Wi + (Wf - Wi) * t / tau, Wf + (Wi - Wf) * (t - tau) / tau);
 
-    mu = 0.5;
-    SX Ut = 1;
-    double Ji = 0.2;
-    double Jf = 0.01;
-    SX Jt = if_else(t < tau, Ji + (Jf - Ji) * t / tau, Jf + (Ji - Jf)*(t - tau) / tau);
-    U0 = Ut;
-//    U0 = scale*UW(Wt);
+//    mu = 0.5;
+//    SX Ut = 1;
+//    double Ji = 0.2;
+//    double Jf = 0.01;
+//    SX Jt = if_else(t < tau, Ji + (Jf - Ji) * t / tau, Jf + (Ji - Jf)*(t - tau) / tau);
+//    U0 = Ut;
+    U0 = scale*UW(Wt);
 //    U0 = scale*UW(Wi);
-    U00 = 1;
-//    U00 = scale*UW(Wi);
+//    U00 = 1;
+    U00 = scale*UW(Wi);
     J0 = vector<double>(L);
     for (int i = 0; i < L; i++) {
-        J0[i] = Ji;
-//        J0[i] = scale*JWij(Wi * xi[i], Wi * xi[mod(i + 1)]);
-        J[i] = Jt;
-//        J[i] = scale*JWij(Wt * xi[i], Wt * xi[mod(i + 1)]);
+//        J0[i] = Ji;
+        J0[i] = scale*JWij(Wi * xi[i], Wi * xi[mod(i + 1)]);
+//        J[i] = Jt;
+        J[i] = scale*JWij(Wt * xi[i], Wt * xi[mod(i + 1)]);
         //        J[i] = scale*JWij(Wt, Wt);
         //        Jp[i] = JWij(Wpt * xi[i], Wpt * xi[mod(i + 1)]);
-        dU[i] = 0;
-//        dU[i] = scale * UW(Wt * xi[i]) - U0;
+//        dU[i] = 0;
+        dU[i] = scale * UW(Wt * xi[i]) - U0;
     }
 
     vector<SX> params;
