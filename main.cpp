@@ -120,8 +120,8 @@ void threadfunc(double Wi, double Wf, double mu, vector<double> xi, int nsteps, 
             pointRes.J0 = prob->getJ0();
             pointRes.b0 = prob->getB0();
             pointRes.bf = prob->getBf();
-            pointRes.f0 = prob->getF0();
-            pointRes.ff = prob->getFf();
+//            pointRes.f0 = prob->getF0();
+//            pointRes.ff = prob->getFf();
 //            pointRes.bs = prob->getBs();
             pointRes.runtime = prob->getRuntime();
         }
@@ -136,8 +136,8 @@ void threadfunc(double Wi, double Wf, double mu, vector<double> xi, int nsteps, 
             pointRes.J0 = vector<double>(L, numeric_limits<double>::quiet_NaN());
             pointRes.b0 = vector<complex<double>>(L, numeric_limits<double>::quiet_NaN());
             pointRes.bf = vector<complex<double>>(L, numeric_limits<double>::quiet_NaN());
-            pointRes.f0 = vector<vector<complex<double>>>(L, vector<complex<double>>(dim, numeric_limits<double>::quiet_NaN()));
-            pointRes.ff = vector<vector<complex<double>>>(L, vector<complex<double>>(dim, numeric_limits<double>::quiet_NaN()));
+//            pointRes.f0 = vector<vector<complex<double>>>(L, vector<complex<double>>(dim, numeric_limits<double>::quiet_NaN()));
+//            pointRes.ff = vector<vector<complex<double>>>(L, vector<complex<double>>(dim, numeric_limits<double>::quiet_NaN()));
 //            pointRes.bs = vector<vector<double>>();
             pointRes.runtime = "Failed";
         }
@@ -159,7 +159,7 @@ void threadfunc(double Wi, double Wf, double mu, vector<double> xi, int nsteps, 
             ++progress;
         }
     }
-
+    
     {
         boost::mutex::scoped_lock lock(problem_mutex);
         delete prob;
@@ -175,8 +175,8 @@ int main(int argc, char** argv) {
 
     ptime begin = microsec_clock::local_time();
 
-    mt19937 rng;
-    uniform_real_distribution<> uni(-1, 1);
+    random::mt19937 rng;
+    random::uniform_real_distribution<> uni(-1, 1);
 
     int seed = lexical_cast<int>(argv[1]);
 
@@ -211,7 +211,8 @@ int main(int argc, char** argv) {
     //    }
 
 #ifdef AMAZON
-    path resdir("/home/ubuntu/Results/Canonical Transformation Dynamical Gutzwiller");
+//    path resdir("/home/ubuntu/Results/Canonical Transformation Dynamical Gutzwiller");
+    path resdir("/home/ubuntu/Dropbox/Amazon EC2/Simulation Results/Canonical Transformation Dynamical Gutzwiller");
 #else
     path resdir("/Users/Abuenameh/Documents/Simulation Results/Canonical Transformation Dynamical Gutzwiller");
     //        path resdir("/Users/Abuenameh/Documents/Simulation Results/Dynamical Gutzwiller Hartmann Comparison");
@@ -314,8 +315,8 @@ int main(int argc, char** argv) {
         J0res.push_back(ires.J0);
         b0res.push_back(ires.b0);
         bfres.push_back(ires.bf);
-        f0res.push_back(ires.f0);
-        ffres.push_back(ires.ff);
+//        f0res.push_back(ires.f0);
+//        ffres.push_back(ires.ff);
 //        bsres.push_back(ires.bs);
         runtimeres.push_back(ires.runtime);
     }
