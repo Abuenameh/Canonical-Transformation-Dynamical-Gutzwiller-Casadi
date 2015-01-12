@@ -47,7 +47,7 @@ struct results {
     double Ef;
     double Q;
     double p;
-//    vector<vector<double>> bs;
+    //    vector<vector<double>> bs;
     double U0;
     vector<double> J0;
     vector<complex<double>> b0;
@@ -71,12 +71,12 @@ void threadfunc(double Wi, double Wf, double mu, vector<double> xi, queue<input>
         boost::mutex::scoped_lock lock(problem_mutex);
 
         vector<double> f0(2 * L*dim, 1);
-            rng.seed();
-            for (int i = 0; i < 2*L*dim; i++) {
-                f0[i] = uni(rng);
-            }
+        rng.seed();
+        for (int i = 0; i < 2 * L * dim; i++) {
+            f0[i] = uni(rng);
+        }
 
-            prob = new DynamicsProblem(Wi, Wf, mu, xi, f0);
+        prob = new DynamicsProblem(Wi, Wf, mu, xi, f0);
     }
 
     for (;;) {
@@ -96,20 +96,20 @@ void threadfunc(double Wi, double Wf, double mu, vector<double> xi, queue<input>
 
         //    int ndim = 2 * L*dim;
 
-//        vector<double> f0(2 * L*dim, 1);
+        //        vector<double> f0(2 * L*dim, 1);
 
-//        {
-//            boost::mutex::scoped_lock lock(problem_mutex);
-//            prob->setParameters(Wi, Wf, tau, xi, mu);
-//            rng.seed();
-//            for (int i = 0; i < 2*L*dim; i++) {
-//                f0[i] = uni(rng);
-//            }
-//            
-//        }
-//        prob->setInitial(f0);
+        //        {
+        //            boost::mutex::scoped_lock lock(problem_mutex);
+        //            prob->setParameters(Wi, Wf, tau, xi, mu);
+        //            rng.seed();
+        //            for (int i = 0; i < 2*L*dim; i++) {
+        //                f0[i] = uni(rng);
+        //            }
+        //            
+        //        }
+        //        prob->setInitial(f0);
         try {
-//        prob->solve();
+            //        prob->solve();
             prob->setTau(tau);
             prob->evolve();
             pointRes.Ei = prob->getEi();
@@ -120,9 +120,9 @@ void threadfunc(double Wi, double Wf, double mu, vector<double> xi, queue<input>
             pointRes.J0 = prob->getJ0();
             pointRes.b0 = prob->getB0();
             pointRes.bf = prob->getBf();
-//            pointRes.f0 = prob->getF0();
-//            pointRes.ff = prob->getFf();
-//            pointRes.bs = prob->getBs();
+            //            pointRes.f0 = prob->getF0();
+            //            pointRes.ff = prob->getFf();
+            //            pointRes.bs = prob->getBs();
             pointRes.runtime = prob->getRuntime();
         }
         catch (std::exception& e) {
@@ -136,9 +136,9 @@ void threadfunc(double Wi, double Wf, double mu, vector<double> xi, queue<input>
             pointRes.J0 = vector<double>(L, numeric_limits<double>::quiet_NaN());
             pointRes.b0 = vector<complex<double>>(L, numeric_limits<double>::quiet_NaN());
             pointRes.bf = vector<complex<double>>(L, numeric_limits<double>::quiet_NaN());
-//            pointRes.f0 = vector<vector<complex<double>>>(L, vector<complex<double>>(dim, numeric_limits<double>::quiet_NaN()));
-//            pointRes.ff = vector<vector<complex<double>>>(L, vector<complex<double>>(dim, numeric_limits<double>::quiet_NaN()));
-//            pointRes.bs = vector<vector<double>>();
+            //            pointRes.f0 = vector<vector<complex<double>>>(L, vector<complex<double>>(dim, numeric_limits<double>::quiet_NaN()));
+            //            pointRes.ff = vector<vector<complex<double>>>(L, vector<complex<double>>(dim, numeric_limits<double>::quiet_NaN()));
+            //            pointRes.bs = vector<vector<double>>();
             pointRes.runtime = "Failed";
         }
 
@@ -159,7 +159,7 @@ void threadfunc(double Wi, double Wf, double mu, vector<double> xi, queue<input>
             ++progress;
         }
     }
-    
+
     {
         boost::mutex::scoped_lock lock(problem_mutex);
         delete prob;
@@ -173,7 +173,7 @@ void threadfunc(double Wi, double Wf, double mu, vector<double> xi, queue<input>
  */
 int main(int argc, char** argv) {
 
-//    ptime begin = microsec_clock::local_time();
+    ptime begin = microsec_clock::local_time();
 
     random::mt19937 rng;
     random::uniform_real_distribution<> uni(-1, 1);
@@ -193,7 +193,7 @@ int main(int argc, char** argv) {
     double tauf = lexical_cast<double>(argv[7]);
     int ntaus = lexical_cast<int>(argv[8]);
     //    double tf = 2*tau;
-//    int nsteps = lexical_cast<int>(argv[9]);
+    //    int nsteps = lexical_cast<int>(argv[9]);
 
     //    double dt = lexical_cast<double>(argv[7]);
     //    int dnsav = lexical_cast<int>(argv[8]);
@@ -209,14 +209,14 @@ int main(int argc, char** argv) {
     //    if (argc > 9) {
     //        resi = lexical_cast<int>(argv[9]);
     //    }
-    
+
     int subresi = -1;
     if (argc > 11) {
         subresi = lexical_cast<int>(argv[11]);
     }
 
 #ifdef AMAZON
-//    path resdir("/home/ubuntu/Results/Canonical Transformation Dynamical Gutzwiller");
+    //    path resdir("/home/ubuntu/Results/Canonical Transformation Dynamical Gutzwiller");
     path resdir("/home/ubuntu/Dropbox/Amazon EC2/Simulation Results/Canonical Transformation Dynamical Gutzwiller");
 #else
     path resdir("/Users/Abuenameh/Documents/Simulation Results/Canonical Transformation Dynamical Gutzwiller");
@@ -228,22 +228,22 @@ int main(int argc, char** argv) {
     }
     ostringstream oss;
     if (subresi == -1) {
-    oss << "res." << resi << ".txt";
+        oss << "res." << resi << ".txt";
     }
     else {
-    oss << "res." << resi << "." << subresi << ".txt";
+        oss << "res." << resi << "." << subresi << ".txt";
     }
     path resfile = resdir / oss.str();
     //#ifndef AMAZON
     while (exists(resfile)) {
         resi++;
         oss.str("");
-    if (subresi == -1) {
-        oss << "res." << resi << ".txt";
-    }
-    else {
-    oss << "res." << resi << "." << subresi << ".txt";
-    }
+        if (subresi == -1) {
+            oss << "res." << resi << ".txt";
+        }
+        else {
+            oss << "res." << resi << "." << subresi << ".txt";
+        }
         resfile = resdir / oss.str();
     }
     //#endif
@@ -267,22 +267,22 @@ int main(int argc, char** argv) {
     double mui = mu * Ui;
 
     filesystem::ofstream os(resfile);
-//    printMath(os, "seed", resi, seed);
-//    printMath(os, "Delta", resi, D);
-//    printMath(os, "Wres", resi, Wi);
+    //    printMath(os, "seed", resi, seed);
+    //    printMath(os, "Delta", resi, D);
+    //    printMath(os, "Wres", resi, Wi);
     printMath(os, "mures", resi, mui);
     printMath(os, "Ures", resi, Ui);
     printMath(os, "xires", resi, xi);
     os << flush;
 
-//    printMath(os, "tauires", resi, taui);
-//    printMath(os, "taufres", resi, tauf);
-//    printMath(os, "ntausres", resi, ntaus);
+    //    printMath(os, "tauires", resi, taui);
+    //    printMath(os, "taufres", resi, tauf);
+    //    printMath(os, "ntausres", resi, ntaus);
 
     os << flush;
 
-//    printMath(os, "Wires", resi, Wi);
-//    printMath(os, "Wfres", resi, Wf);
+    //    printMath(os, "Wires", resi, Wi);
+    //    printMath(os, "Wfres", resi, Wf);
     os << flush;
 
     cout << "Res: " << resi << endl;
@@ -314,9 +314,9 @@ int main(int argc, char** argv) {
     vector<vector<double>> J0res;
     vector<vector<complex<double>>> b0res;
     vector<vector<complex<double>>> bfres;
-    vector<vector<vector<complex<double>>>> f0res;
-    vector<vector<vector<complex<double>>>> ffres;
-//    vector<vector<vector<double>>> bsres;
+    vector<vector < vector<complex<double>>>> f0res;
+    vector<vector < vector<complex<double>>>> ffres;
+    //    vector<vector<vector<double>>> bsres;
     vector<string> runtimeres;
 
     for (results ires : res) {
@@ -329,9 +329,9 @@ int main(int argc, char** argv) {
         J0res.push_back(ires.J0);
         b0res.push_back(ires.b0);
         bfres.push_back(ires.bf);
-//        f0res.push_back(ires.f0);
-//        ffres.push_back(ires.ff);
-//        bsres.push_back(ires.bs);
+        //        f0res.push_back(ires.f0);
+        //        ffres.push_back(ires.ff);
+        //        bsres.push_back(ires.bs);
         runtimeres.push_back(ires.runtime);
     }
 
@@ -346,14 +346,19 @@ int main(int argc, char** argv) {
     printMath(os, "bfres", resi, subresi, bfres);
     printMath(os, "f0res", resi, subresi, f0res);
     printMath(os, "ffres", resi, subresi, ffres);
-//    printMath(os, "bsres", resi, bsres);
+    //    printMath(os, "bsres", resi, bsres);
     printMath(os, "runtime", resi, subresi, runtimeres);
 
-//    ptime end = microsec_clock::local_time();
-//    time_period period(begin, end);
-//    cout << endl << period.length() << endl << endl;
-//
-//    os << "totalruntime[" << resi << "]=\"" << period.length() << "\";" << endl;
+    ptime end = microsec_clock::local_time();
+    time_period period(begin, end);
+    cout << endl << period.length() << endl << endl;
+
+    if (subresi == -1) {
+        os << "totalruntime[" << resi << "]=\"" << period.length() << "\";" << endl;
+    }
+    else {
+        os << "subtotalruntime[" << resi << "," << subresi << "]=\"" << period.length() << "\";" << endl;
+    }
 
     return 0;
 
