@@ -288,11 +288,18 @@ int main(int argc, char** argv) {
     cout << "Res: " << resi << endl;
 
     queue<input> inputs;
-    for (int i = 0; i < ntaus; i++) {
+    if (ntaus == 1) {
         input in;
-        double tau = taui + i * (tauf - taui) / ntaus;
-        in.tau = tau;
+        in.tau = taui;
         inputs.push(in);
+    }
+    else {
+        for (int i = 0; i < ntaus; i++) {
+            input in;
+            double tau = taui + i * (tauf - taui) / (ntaus - 1);
+            in.tau = tau;
+            inputs.push(in);
+        }
     }
 
     progress_display progress(inputs.size());
