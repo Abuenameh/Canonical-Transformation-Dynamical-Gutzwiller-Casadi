@@ -260,6 +260,15 @@ template<typename T> void printMath(ostream& out, string name, int i, T& t) {
     out << name << "[" << i << "]" << "=" << ::math(t) << ";" << std::endl;
 }
 
+template<typename T> void printMath(ostream& out, string name, int i, int j, T& t) {
+    if (j == -1) {
+    out << name << "[" << i << "]" << "=" << ::math(t) << ";" << std::endl;
+    }
+    else {
+    out << name << "[" << i << "," << j << "]" << "=" << ::math(t) << ";" << std::endl;
+    }
+}
+
 
 
 #endif	/* MATHEMATICA_HPP */

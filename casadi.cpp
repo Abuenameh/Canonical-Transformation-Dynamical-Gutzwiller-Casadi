@@ -609,7 +609,7 @@ void DynamicsProblem::solve() {
     gsruntime = to_simple_string(period.length());
 }
 
-void DynamicsProblem::evolve(int nsteps) {
+void DynamicsProblem::evolve() {
     start_time = microsec_clock::local_time();
     ptime eval_start_time = microsec_clock::local_time();
 

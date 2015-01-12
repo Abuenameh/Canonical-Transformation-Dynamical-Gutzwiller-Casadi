@@ -64,7 +64,7 @@ boost::mutex problem_mutex;
 boost::random::mt19937 rng;
 boost::random::uniform_real_distribution<> uni(-1, 1);
 
-void threadfunc(double Wi, double Wf, double mu, vector<double> xi, int nsteps, queue<input>& inputs, vector<results>& res, progress_display& progress) {
+void threadfunc(double Wi, double Wf, double mu, vector<double> xi, queue<input>& inputs, vector<results>& res, progress_display& progress) {
     DynamicsProblem* prob;
 
     {
@@ -111,7 +111,7 @@ void threadfunc(double Wi, double Wf, double mu, vector<double> xi, int nsteps, 
         try {
 //        prob->solve();
             prob->setTau(tau);
-            prob->evolve(nsteps);
+            prob->evolve();
             pointRes.Ei = prob->getEi();
             pointRes.Ef = prob->getEf();
             pointRes.Q = prob->getQ();
@@ -173,7 +173,7 @@ void threadfunc(double Wi, double Wf, double mu, vector<double> xi, int nsteps, 
  */
 int main(int argc, char** argv) {
 
-    ptime begin = microsec_clock::local_time();
+//    ptime begin = microsec_clock::local_time();
 
     random::mt19937 rng;
     random::uniform_real_distribution<> uni(-1, 1);
@@ -193,7 +193,7 @@ int main(int argc, char** argv) {
     double tauf = lexical_cast<double>(argv[7]);
     int ntaus = lexical_cast<int>(argv[8]);
     //    double tf = 2*tau;
-    int nsteps = lexical_cast<int>(argv[9]);
+//    int nsteps = lexical_cast<int>(argv[9]);
 
     //    double dt = lexical_cast<double>(argv[7]);
     //    int dnsav = lexical_cast<int>(argv[8]);
@@ -202,13 +202,18 @@ int main(int argc, char** argv) {
     //    double h = 2 * tau / nsteps;
 
 
-    int numthreads = lexical_cast<int>(argv[10]);
+    int numthreads = lexical_cast<int>(argv[9]);
 
-    int resi = lexical_cast<int>(argv[11]);
+    int resi = lexical_cast<int>(argv[10]);
     //    int resi = 0;
     //    if (argc > 9) {
     //        resi = lexical_cast<int>(argv[9]);
     //    }
+    
+    int subresi = -1;
+    if (argc > 11) {
+        subresi = lexical_cast<int>(argv[11]);
+    }
 
 #ifdef AMAZON
 //    path resdir("/home/ubuntu/Results/Canonical Transformation Dynamical Gutzwiller");
@@ -222,13 +227,23 @@ int main(int argc, char** argv) {
         exit(1);
     }
     ostringstream oss;
+    if (subresi == -1) {
     oss << "res." << resi << ".txt";
+    }
+    else {
+    oss << "res." << resi << "." << subresi << ".txt";
+    }
     path resfile = resdir / oss.str();
     //#ifndef AMAZON
     while (exists(resfile)) {
         resi++;
         oss.str("");
+    if (subresi == -1) {
         oss << "res." << resi << ".txt";
+    }
+    else {
+    oss << "res." << resi << "." << subresi << ".txt";
+    }
         resfile = resdir / oss.str();
     }
     //#endif
@@ -252,23 +267,22 @@ int main(int argc, char** argv) {
     double mui = mu * Ui;
 
     filesystem::ofstream os(resfile);
-    printMath(os, "seed", resi, seed);
-    printMath(os, "Delta", resi, D);
-    printMath(os, "Wres", resi, Wi);
+//    printMath(os, "seed", resi, seed);
+//    printMath(os, "Delta", resi, D);
+//    printMath(os, "Wres", resi, Wi);
     printMath(os, "mures", resi, mui);
     printMath(os, "Ures", resi, Ui);
     printMath(os, "xires", resi, xi);
     os << flush;
 
-    printMath(os, "tauires", resi, taui);
-    printMath(os, "taufres", resi, tauf);
-    printMath(os, "ntausres", resi, ntaus);
+//    printMath(os, "tauires", resi, taui);
+//    printMath(os, "taufres", resi, tauf);
+//    printMath(os, "ntausres", resi, ntaus);
 
-    printMath(os, "nsteps", resi, nsteps);
     os << flush;
 
-    printMath(os, "Wires", resi, Wi);
-    printMath(os, "Wfres", resi, Wf);
+//    printMath(os, "Wires", resi, Wi);
+//    printMath(os, "Wfres", resi, Wf);
     os << flush;
 
     cout << "Res: " << resi << endl;
@@ -287,7 +301,7 @@ int main(int argc, char** argv) {
 
     thread_group threads;
     for (int i = 0; i < numthreads; i++) {
-        threads.create_thread(bind(&threadfunc, Wi, Wf, mui, xi, nsteps, boost::ref(inputs), boost::ref(res), boost::ref(progress)));
+        threads.create_thread(bind(&threadfunc, Wi, Wf, mui, xi, boost::ref(inputs), boost::ref(res), boost::ref(progress)));
     }
     threads.join_all();
 
@@ -321,25 +335,25 @@ int main(int argc, char** argv) {
         runtimeres.push_back(ires.runtime);
     }
 
-    printMath(os, "taures", resi, taures);
-    printMath(os, "Eires", resi, Eires);
-    printMath(os, "Efres", resi, Efres);
-    printMath(os, "Qres", resi, Qres);
-    printMath(os, "pres", resi, pres);
-    printMath(os, "U0res", resi, U0res);
-    printMath(os, "J0res", resi, J0res);
-    printMath(os, "b0res", resi, b0res);
-    printMath(os, "bfres", resi, bfres);
-    printMath(os, "f0res", resi, f0res);
-    printMath(os, "ffres", resi, ffres);
+    printMath(os, "taures", resi, subresi, taures);
+    printMath(os, "Eires", resi, subresi, Eires);
+    printMath(os, "Efres", resi, subresi, Efres);
+    printMath(os, "Qres", resi, subresi, Qres);
+    printMath(os, "pres", resi, subresi, pres);
+    printMath(os, "U0res", resi, subresi, U0res);
+    printMath(os, "J0res", resi, subresi, J0res);
+    printMath(os, "b0res", resi, subresi, b0res);
+    printMath(os, "bfres", resi, subresi, bfres);
+    printMath(os, "f0res", resi, subresi, f0res);
+    printMath(os, "ffres", resi, subresi, ffres);
 //    printMath(os, "bsres", resi, bsres);
-    printMath(os, "runtime", resi, runtimeres);
+    printMath(os, "runtime", resi, subresi, runtimeres);
 
-    ptime end = microsec_clock::local_time();
-    time_period period(begin, end);
-    cout << endl << period.length() << endl << endl;
-
-    os << "totalruntime[" << resi << "]=\"" << period.length() << "\";" << endl;
+//    ptime end = microsec_clock::local_time();
+//    time_period period(begin, end);
+//    cout << endl << period.length() << endl << endl;
+//
+//    os << "totalruntime[" << resi << "]=\"" << period.length() << "\";" << endl;
 
     return 0;
 

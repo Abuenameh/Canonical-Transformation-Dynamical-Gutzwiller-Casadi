@@ -35,7 +35,7 @@ public:
     double E(const vector<double>& f, vector<double>& grad);
     double E(const vector<double>& f, double t);
 
-    void evolve(int nsteps);
+    void evolve();
 
     vector<double> getGS() { return x0; };
     string& getGSRuntime() { return gsruntime; }
