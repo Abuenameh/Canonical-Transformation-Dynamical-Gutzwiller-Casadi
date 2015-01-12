@@ -536,14 +536,14 @@ DynamicsProblem::DynamicsProblem(double Wi, double Wf, double mu_, vector<double
     ode_func = SXFunction(daeIn("x", x, "t", t, "p", p), daeOut("ode", ode));
 
     Function g;
-    integrator = new CvodesInterface(ode_func, g);
-    integrator->setOption("max_num_steps", 1000000);
-    integrator->setOption("stop_at_end", false);
+//    integrator = new CvodesInterface(ode_func, g);
+//    integrator->setOption("max_num_steps", 1000000);
+//    integrator->setOption("stop_at_end", false);
 //    integrator->setOption("linear_multistep_method", "adams");
 //        integrator->setOption("linear_solver", "csparse");
 //        integrator->setOption("linear_solver_type", "user_defined");
-//        integrator = new RkIntegrator(ode_func, g);
-//        integrator->setOption("number_of_finite_elements", 1000);
+        integrator = new RkIntegrator(ode_func, g);
+        integrator->setOption("number_of_finite_elements", 1000000000);
     integrator->setOption("t0", 0);
 //    integrator->setOption("tf", 1);
     integrator->init();

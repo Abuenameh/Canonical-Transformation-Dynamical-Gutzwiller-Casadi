@@ -111,8 +111,8 @@ private:
 
     SX ode;
     SXFunction ode_func;
-    CvodesInterface* integrator;
-//    RkIntegrator* integrator;
+//    CvodesInterface* integrator;
+    RkIntegrator* integrator;
 
     vector<double> params;
     vector<double> gsparams;
