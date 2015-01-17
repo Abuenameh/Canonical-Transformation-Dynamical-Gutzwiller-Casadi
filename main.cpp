@@ -64,21 +64,27 @@ boost::mutex problem_mutex;
 boost::random::mt19937 rng;
 boost::random::uniform_real_distribution<> uni(-1, 1);
 
-void threadfunc(double Wi, double Wf, double mu, vector<double> xi, queue<input>& inputs, vector<results>& res, progress_display& progress) {
+void threadfunc(double Wi, double Wf, double mu, vector<double> xi, double tauf, queue<input>& inputs, vector<results>& res, progress_display& progress, barrier& bar, int thread) {
     DynamicsProblem* prob;
 
     {
         boost::mutex::scoped_lock lock(problem_mutex);
 
-        vector<double> f0(2 * L*dim, 1);
-        rng.seed();
-        for (int i = 0; i < 2 * L * dim; i++) {
-            f0[i] = uni(rng);
-        }
-
-        prob = new DynamicsProblem(Wi, Wf, mu, xi, f0);
+//        vector<double> f0(2 * L*dim, 1);
+//        rng.seed();
+//        for (int i = 0; i < 2 * L * dim; i++) {
+//            f0[i] = uni(rng);
+//        }
+//
+//        prob = new DynamicsProblem(Wi, Wf, mu, xi, f0);
+        
+        prob = new DynamicsProblem(thread, tauf);
     }
+    
+    bar.wait();
 
+//    if (thread < 2)
+//    if (false)
     for (;;) {
         input in;
         {
@@ -111,7 +117,10 @@ void threadfunc(double Wi, double Wf, double mu, vector<double> xi, queue<input>
         try {
             //        prob->solve();
             prob->setTau(tau);
+            {
+//                boost::mutex::scoped_lock lock(problem_mutex);
             prob->evolve();
+            }
             pointRes.Ei = prob->getEi();
             pointRes.Ef = prob->getEf();
             pointRes.Q = prob->getQ();
@@ -120,8 +129,8 @@ void threadfunc(double Wi, double Wf, double mu, vector<double> xi, queue<input>
             pointRes.J0 = prob->getJ0();
             pointRes.b0 = prob->getB0();
             pointRes.bf = prob->getBf();
-            //            pointRes.f0 = prob->getF0();
-            //            pointRes.ff = prob->getFf();
+                        pointRes.f0 = prob->getF0();
+                        pointRes.ff = prob->getFf();
             //            pointRes.bs = prob->getBs();
             pointRes.runtime = prob->getRuntime();
         }
@@ -136,8 +145,8 @@ void threadfunc(double Wi, double Wf, double mu, vector<double> xi, queue<input>
             pointRes.J0 = vector<double>(L, numeric_limits<double>::quiet_NaN());
             pointRes.b0 = vector<complex<double>>(L, numeric_limits<double>::quiet_NaN());
             pointRes.bf = vector<complex<double>>(L, numeric_limits<double>::quiet_NaN());
-            //            pointRes.f0 = vector<vector<complex<double>>>(L, vector<complex<double>>(dim, numeric_limits<double>::quiet_NaN()));
-            //            pointRes.ff = vector<vector<complex<double>>>(L, vector<complex<double>>(dim, numeric_limits<double>::quiet_NaN()));
+                        pointRes.f0 = vector<vector<complex<double>>>(L, vector<complex<double>>(dim, numeric_limits<double>::quiet_NaN()));
+                        pointRes.ff = vector<vector<complex<double>>>(L, vector<complex<double>>(dim, numeric_limits<double>::quiet_NaN()));
             //            pointRes.bs = vector<vector<double>>();
             pointRes.runtime = "Failed";
         }
@@ -159,6 +168,8 @@ void threadfunc(double Wi, double Wf, double mu, vector<double> xi, queue<input>
             ++progress;
         }
     }
+    
+    bar.wait();
 
     {
         boost::mutex::scoped_lock lock(problem_mutex);
@@ -306,9 +317,19 @@ int main(int argc, char** argv) {
 
     vector<results> res;
 
+        vector<double> f0(2 * L*dim, 1);
+        rng.seed();
+        for (int i = 0; i < 2 * L * dim; i++) {
+            f0[i] = uni(rng);
+        }
+
+    DynamicsProblem::setup(Wi, Wf, mui, xi, f0);
+    
+    barrier bar(numthreads);
+    
     thread_group threads;
     for (int i = 0; i < numthreads; i++) {
-        threads.create_thread(bind(&threadfunc, Wi, Wf, mui, xi, boost::ref(inputs), boost::ref(res), boost::ref(progress)));
+        threads.create_thread(bind(&threadfunc, Wi, Wf, mui, xi, tauf, boost::ref(inputs), boost::ref(res), boost::ref(progress), boost::ref(bar), i));
     }
     threads.join_all();
 
@@ -336,8 +357,8 @@ int main(int argc, char** argv) {
         J0res.push_back(ires.J0);
         b0res.push_back(ires.b0);
         bfres.push_back(ires.bf);
-        //        f0res.push_back(ires.f0);
-        //        ffres.push_back(ires.ff);
+                f0res.push_back(ires.f0);
+                ffres.push_back(ires.ff);
         //        bsres.push_back(ires.bs);
         runtimeres.push_back(ires.runtime);
     }
