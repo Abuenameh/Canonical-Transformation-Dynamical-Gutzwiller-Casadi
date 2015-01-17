@@ -128,13 +128,13 @@ private:
     
     static SX sode;
     SX ode;
-//    SXFunction ode_func;
-    Function ode_func;
-    SX qweSX;
-    SX asdSX;
-    Function qwef;
-//    vector<Sparsity> ins;
-//    vector<Sparsity> outs;
+    SXFunction ode_func;
+//    CvodesInterface* integrator;
+    RkIntegrator* integrator;
+
+    vector<double> params;
+    vector<double> gsparams;
+    vector<double> x0;
     
     int thread;
     
