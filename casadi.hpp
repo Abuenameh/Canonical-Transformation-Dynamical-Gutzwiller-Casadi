@@ -8,9 +8,13 @@
 #ifndef CASADI_HPP
 #define	CASADI_HPP
 
+#include <typeinfo>
+
 #include <casadi/casadi.hpp>
 #include <casadi/solvers/rk_integrator.hpp>
+#include <casadi/solvers/collocation_integrator.hpp>
 #include <casadi/interfaces/sundials/cvodes_interface.hpp>
+#include <casadi/core/function/custom_function.hpp>
 
 using namespace casadi;
 
@@ -26,13 +30,16 @@ using namespace nlopt;
 
 class DynamicsProblem {
 public:
-    DynamicsProblem(double Wi, double Wf, double mu_, vector<double>& xi, vector<double>& f0);
-        ~DynamicsProblem() { delete lopt; delete integrator; }
+//    DynamicsProblem(double Wi, double Wf, double mu_, vector<double>& xi, vector<double>& f0);
+    DynamicsProblem(int thread_, double tauf);
+        ~DynamicsProblem() { /*delete lopt;*/ delete integrator; }
 
         void setTau(double tau_);
 //    void setParameters(double Wi, double Wf, double tau, vector<double>& xi, double mu);
 
-    double E(const vector<double>& f, vector<double>& grad);
+        static void setup(double Wi_, double Wf_, double mu_, vector<double>& xi_, vector<double>& f0_);
+        
+    static double E(const vector<double>& f, vector<double>& grad);
     double E(const vector<double>& f, double t);
 
     void evolve();
@@ -44,9 +51,9 @@ public:
     string& getGSResult() {
         return gsresult;
     }
-    string& getResult() {
-        return result;
-    }
+//    string& getResult() {
+//        return result;
+//    }
     
     double getQ() { return Q; }
     double getRho() { return pd; }
@@ -74,58 +81,81 @@ private:
     ptime start_time;
     ptime stop_time;
     
-    double scale = 1;
+    static double scale;
 
-    void setInitial(vector<double>& f0);
-    void solve();
+//    void setInitial(vector<double>& f0);
+//    void solve();
 
     complex<SX> HS();
     SX W();
-    SX energy();
-    SX energya();
-    SX energy0();
-    SX energync();
-    SX canonical();
-    SX canonicala();
+    static SX energy(vector<SX>& fin, vector<SX>& J, SX& U0, vector<SX>& dU, SX& mu);
+    static SX energy(int i, int n, vector<SX>& fin, vector<SX>& J, SX& U0, vector<SX>& dU, SX& mu);
+    SX energya(vector<SX>& fin, vector<SX>& J, SX& U0, vector<SX>& dU, SX& mu);
+    SX energy0(vector<SX>& fin, vector<SX>& J, SX& U0, vector<SX>& dU, SX& mu);
+    SX energync(vector<SX>& fin, vector<SX>& J, SX& U0, vector<SX>& dU, SX& mu);
+    static SX canonical(vector<SX>& fin, vector<SX>& J, SX& U0, vector<SX>& dU, SX& mu);
+    static SX canonical(int i, int n, vector<SX>& fin, vector<SX>& J, SX& U0, vector<SX>& dU, SX& mu);
+    SX canonicala(vector<SX>& fin, vector<SX>& J, SX& U0, vector<SX>& dU, SX& mu);
 
-    vector<SX> fin;
-    SX U0;
-    vector<SX> dU;
-    vector<SX> J;
-    double mu;
-    SX tau;
+//    vector<SX> fin;
+//    SX U0;
+//    vector<SX> dU;
+//    vector<SX> J;
+//    double mu;
+//    SX tau;
 
-    SX Wt;
+//    SX Wt;
 
-    SX t;
-    SX x;
-    SX p;
-    SX gsp;
+//    SX t;
+//    SX x;
+//    SX p;
+//    SX gsp;
+    
+    static SX st;
+    static SX sx;
+    static SX sp;
 
     double tf;
 
-    double U00;
-    vector<double> J0;
+    static vector<double> xi;
+    static double U00;
+    static vector<double> J0;
     
-    opt* lopt;
+//    opt* lopt;
 
+    static vector<Function> sodes;
+    vector<Function> odes;
+    
+    static SX sode;
     SX ode;
-    SXFunction ode_func;
-    CvodesInterface* integrator;
-//    RkIntegrator* integrator;
-
-    vector<double> params;
-    vector<double> gsparams;
-    vector<double> x0;
+//    SXFunction ode_func;
+    Function ode_func;
+    SX qweSX;
+    SX asdSX;
+    Function qwef;
+//    vector<Sparsity> ins;
+//    vector<Sparsity> outs;
     
-    SXFunction Efunc;
-    Function Egradf;
+    int thread;
+    
+//    CvodesInterface* integrator;
+    RkIntegrator* integrator;
+//    CollocationIntegrator* integrator;
+
+    static vector<double> sparams;
+    static vector<double> gsparams;
+    static vector<double> x0;
+    
+    vector<double> params;
+    
+    static vector<Function> Efunc;
+    static vector<Function> Egradf;
 
     string gsruntime;
     string gsresult;
     
     string runtime;
-    string result;
+//    string result;
     
     double E0;
     double Ef;
