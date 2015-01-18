@@ -439,121 +439,48 @@ void loadFunction(Function& f, string name) {
     f.init();
 }
 
-boost::mutex sum_mutex;
-
-void SumFunction2(CustomFunction& f, void* user_data) {
-    //    Parallelizer* par = static_cast<Parallelizer*>(user_data);
-    //    int numInputs = f.getNumInputs();
-    //    int numOutputs = f.getNumOutputs();
-    {
-        boost::mutex::scoped_lock lock(sum_mutex);
-        f.getInput(0);
-    }
-    //    for (int i = 0; i < numInputs; i++) {
-    //    for (int j = 0; j < L*(nmax+1); j++) {
-    //        par->setInput(f.getInput(i), i);
-    ////        par->setInput(f.getInput(i), j*numInputs + i);
-    //    }
-    //    }
-    //    DMatrix parinput = repmat(f.input(i), L*(nmax+1));
-}
-
-struct sumdata {
-    DMatrix input;
-    DMatrix output;
-    DMatrix outputi;
-    vector<Function>* odes;
-};
-
 void SumFunction(CustomFunction& f, void* user_data) {
-    {
-        //        boost::mutex::scoped_lock lock(sum_mutex);
-        sumdata* data = static_cast<sumdata*> (user_data);
-        //    vector<Function>* fsp = static_cast<vector<Function>*>(user_data);
-        //    vector<Function>& fs = *fsp;
-        vector<Function>& fs = *(data->odes);
-//        DMatrix& input = data->input;
-//        DMatrix& output = data->output;
-//        DMatrix& outputi = data->outputi;
-        int numFuncs = fs.size();
-        //    int numInputs = fs[0].getNumInputs();
-        //    int numOutputs = fs[0].getNumOutputs();
-        //    int numFuncs = fs->size();
-        //    int numInputs = (*fs)[0].getNumInputs();
-        //    int numOutputs = (*fs)[0].getNumOutputs();
-        //    f.getInput(0);
-        //    f.input_struct();
-        //    DMatrix matrix = 1;
-        //    ostringstream qwe;
-        //    qwe << fs[0].input(0);
-        //    cout << f.getInput(0) << endl;
-        //    DMatrix matrix;
-        //    DMatrix matrixi;
-        DMatrix input;
-        for (int i = 0; i < DAE_NUM_IN; i++) {
-            //        DMatrix& input = f.input_struct().data.at(i);
-            //        DMatrix& input = f.input(i);//f.getInput(i);            
-            //        double asd = f.getInput(i).front();
-            //        matrix = f.getInput(i);            
-            //        f.getInput(i);
-            //        DMatrix input(f.getInput(i));
-            //        matrix = f.getInput(i);
-            /*DMatrix*/ input = f.input(i);
-            for (int j = 0; j < numFuncs; j++) {
-                //            fs[j].input(i).set(f.input(i));
-                //            fs[j].input_struct().data.at(i) = input;
-                fs[j].setInput(input, i);
-                //            fs[j].setInput(matrix, i);
-            }
-            //        matrix = 0;
-        }
-        for (int i = 0; i < numFuncs; i++) {
-            fs[i].evaluate();
-        }
-        //    DMatrix output = 0;
-        DMatrix output;
-        DMatrix outputi;
-        for (int i = 0; i < DAE_NUM_OUT; i++) {
-            //        /*DMatrix*/ output = 0;
-            //        matrix = 0;
-            output = 0;
-            for (int j = 0; j < numFuncs; j++) {
-                /*DMatrix*/ outputi = fs[j].output(i);
-                //            DMatrix outputi(fs[j].getOutput(i));
-                //            matrixi = fs[j].getOutput(i);
-                output += outputi;
-                //            matrix += matrixi;
-            }
-            //        f.setOutput(matrix, i);
-            f.setOutput(output, i);
+    vector<Function>* fsp = static_cast<vector<Function>*> (user_data);
+    vector<Function>& fs = *fsp;
+    int numFuncs = fs.size();
+    for (int i = 0; i < DAE_NUM_IN; i++) {
+        DMatrix& input = f.input(i);
+        for (int j = 0; j < numFuncs; j++) {
+            fs[j].setInput(input, i);
         }
     }
+    for (int i = 0; i < numFuncs; i++) {
+        fs[i].evaluate();
+    }
+    for (int i = 0; i < DAE_NUM_OUT; i++) {
+        DMatrix output = 0;
+        for (int j = 0; j < numFuncs; j++) {
+            output += fs[j].output(i);
+        }
+        f.setOutput(output, i);
+    }
 }
-
-//boost::mutex problem_mutex;
 
 double DynamicsProblem::scale = 1;
 double DynamicsProblem::U00;
 vector<double> DynamicsProblem::J0;
 vector<double> DynamicsProblem::xi;
 
+double DynamicsProblem::dt;
+
 vector<double> DynamicsProblem::x0;
 
 vector<Function> DynamicsProblem::Efunc;
 vector<Function> DynamicsProblem::Egradf;
-//vector<Function> DynamicsProblem::sodes;
-
-SX DynamicsProblem::sode;
-SX DynamicsProblem::sx;
-SX DynamicsProblem::sp;
-SX DynamicsProblem::st;
 
 vector<double> DynamicsProblem::sparams;
 vector<double> DynamicsProblem::gsparams;
 
-void DynamicsProblem::setup(double Wi_, double Wf_, double mu_, vector<double>& xi_, vector<double>& f0_) {
+void DynamicsProblem::setup(double Wi_, double Wf_, double mu_, vector<double>& xi_, vector<double>& f0_, double dt_) {
 
     xi = xi_;
+    
+    dt = dt_;
 
     sparams.clear();
     sparams.push_back(Wi_);
@@ -579,7 +506,6 @@ void DynamicsProblem::setup(double Wi_, double Wf_, double mu_, vector<double>& 
     string compiledir = "L" + to_string(L) + "nmax" + to_string(nmax);
     path compilepath(compiledir);
 
-    //    if (true) {
     if (!exists(compilepath)) {
 
         create_directory(compilepath);
@@ -599,10 +525,7 @@ void DynamicsProblem::setup(double Wi_, double Wf_, double mu_, vector<double>& 
         vector<SX> xiv = SX::sym("xi", 1, 1, L);
 
         U0 = scale * UW(Wt);
-        //    U00 = scale*UW(Wi_);
-        //    J0 = vector<double>(L);
         for (int i = 0; i < L; i++) {
-            //        J0[i] = scale*JWij(Wi_ * xi[i], Wi_ * xi[mod(i + 1)]);
             J[i] = scale * JWij(Wt * xiv[i], Wt * xiv[mod(i + 1)]);
             dU[i] = scale * UW(Wt * xiv[i]) - U0;
         }
@@ -617,27 +540,9 @@ void DynamicsProblem::setup(double Wi_, double Wf_, double mu_, vector<double>& 
         vector<SX> gsparamsv(paramsv.begin(), paramsv.end());
         gsparamsv.push_back(t);
 
-        //    sparams.clear();
-        //    sparams.push_back(Wi_);
-        //    sparams.push_back(Wf_);
-        //    sparams.push_back(mu_);
-        //    for (double xii : xi_) sparams.push_back(xii);
-        //    sparams.push_back(1);
-
-        //    gsparams.clear();
-        //    gsparams.push_back(Wi_);
-        //    gsparams.push_back(Wf_);
-        //    gsparams.push_back(mu_);
-        //    for (double xii : xi_) gsparams.push_back(xii);
-        //    gsparams.push_back(1);
-        //    gsparams.push_back(0);
-
         SX x = SX::sym("x", fin.size());
         SX p = SX::sym("p", paramsv.size());
         SX gsp = SX::sym("gsp", gsparamsv.size());
-        sx = x;
-        sp = p;
-        st = t;
 
         vector<SX> xs;
         for (int i = 0; i < x.size(); i++) {
@@ -652,28 +557,19 @@ void DynamicsProblem::setup(double Wi_, double Wf_, double mu_, vector<double>& 
             gsps.push_back(gsp.at(i));
         }
 
-        vector<SX> GSEs;
-        vector<SX> Es;
-        vector<SX> Sdts;
-        //    vector<Function> odes;
-
         for (int i = 0; i < L; i++) {
             for (int n = 0; n <= nmax; n++) {
                 SX E = energy(i, n, fin, J, U0, dU, mu);
-                Es.push_back(E);
-
                 SX S = canonical(i, n, fin, J, U0, dU, mu);
                 SXFunction Sf(vector<SX>{t}, vector<SX>{S});
                 Sf.init();
                 Function Sdtf = Sf.gradient(0, 0);
                 Sdtf.init();
                 SX Sdt = Sdtf.call(vector<SX>{t})[0];
-                Sdts.push_back(Sdt);
 
                 SX GSE = E;
                 GSE = substitute(vector<SX>{GSE}, fin, xs)[0];
                 GSE = substitute(vector<SX>{GSE}, gsparamsv, gsps)[0];
-                GSEs.push_back(GSE);
 
                 SXFunction Ef = SXFunction(nlpIn("x", x, "p", gsp), nlpOut("f", GSE));
                 Ef.init();
@@ -725,39 +621,21 @@ void DynamicsProblem::setup(double Wi_, double Wf_, double mu_, vector<double>& 
                     }
                     catch (CasadiException& e) {
                     }
-
-                    //                ode[2 * j] = 0.5 * (HSrdftmp[2 * j] - HSidftmp[2 * j + 1]);
-                    //                ode[2 * j + 1] = 0.5 * (HSidftmp[2 * j] + HSrdftmp[2 * j + 1]);
-                    //        ode[2 * j] = 0.5 * - HSidftmp[2 * j + 1];
-                    //        ode[2 * j + 1] = 0.5 * HSidftmp[2 * j];
                 }
                 Function ode_func = SXFunction(daeIn("x", x, "t", t, "p", p), daeOut("ode", ode));
                 ode_func.init();
-                //    sodes.push_back(ode_func);
                 compileFunction(ode_func, compiledir + "/ode." + to_string(i) + "." + to_string(n));
-
             }
         }
     }
 
-//    SX qwe = SX::sym("qwe", 2 * L * dim);
-//    SX sdf = SX::sym("sdf", 10);
-//    //    SX asd = 2*qwe;
-//    SX asd = SX::sym("asd");
-//    asd = qwe[0];
-//    SXFunction zxc = SXFunction(nlpIn("x", qwe, "p", sdf), nlpOut("f", asd));
-//    zxc.init();
     Efunc = vector<Function>(L * (nmax + 1));
     Egradf = vector<Function>(L * (nmax + 1));
-    //    sodes = vector<Function>(L*(nmax+1));
     for (int i = 0; i < L; i++) {
         for (int n = 0; n <= nmax; n++) {
             int j = i * (nmax + 1) + n;
-//            Efunc[j] = zxc;
-//            Egradf[j] = zxc;
-                    loadFunction(Efunc[j], compiledir + "/E." + to_string(i) + "." + to_string(n));
-                    loadFunction(Egradf[j], compiledir + "/Egrad." + to_string(i) + "." + to_string(n));
-            //        loadFunction(sodes[j], compiledir + "/ode." + to_string(i) + "." + to_string(n));
+            loadFunction(Efunc[j], compiledir + "/E." + to_string(i) + "." + to_string(n));
+            loadFunction(Egradf[j], compiledir + "/Egrad." + to_string(i) + "." + to_string(n));
         }
     }
 
@@ -781,17 +659,16 @@ void DynamicsProblem::setup(double Wi_, double Wf_, double mu_, vector<double>& 
     lopt.set_min_objective(energyfunc, NULL);
 
     double E0;
-//            try {
-        result res = lopt.optimize(x0, E0);
-//        }
-//        catch (std::exception& e) {
-//            stop_time = microsec_clock::local_time();
-//            enum result res = lopt->last_optimize_result();
-//            gsresult = to_string(res) + ": " + e.what();
-//            cerr << e.what() << endl;
-//        }
+    //            try {
+    result res = lopt.optimize(x0, E0);
+    //        }
+    //        catch (std::exception& e) {
+    //            stop_time = microsec_clock::local_time();
+    //            enum result res = lopt->last_optimize_result();
+    //            gsresult = to_string(res) + ": " + e.what();
+    //            cerr << e.what() << endl;
+    //        }
 
-    //    vector<complex<double>> fi(dim);
     for (int i = 0; i < L; i++) {
         for (int n = 0; n <= nmax; n++) {
             fi[n] = complex<double>(x0[2 * (i * dim + n)], x0[2 * (i * dim + n) + 1]);
@@ -803,230 +680,9 @@ void DynamicsProblem::setup(double Wi_, double Wf_, double mu_, vector<double>& 
         }
     }
 
-    //    SX E = energy();
-    //    SX S = canonical();
-    //
-    //    SXFunction Sf(vector<SX>{t}, vector<SX>{S});
-    //    Sf.init();
-    //    Function Sdtf = Sf.gradient(0, 0);
-    //    Sdtf.init();
-    //    SX Sdt = Sdtf.call(vector<SX>{t})[0];
-    //
-    //    SX GSE = E;
-    //
-    //    x = SX::sym("x", fin.size());
-    //    p = SX::sym("p", params.size());
-    //    gsp = SX::sym("gsp", gsparams.size());
-    //
-    //    vector<SX> xs;
-    //    for (int i = 0; i < x.size(); i++) {
-    //        xs.push_back(x.at(i));
-    //    }
-    //    vector<SX> ps;
-    //    for (int i = 0; i < p.size(); i++) {
-    //        ps.push_back(p.at(i));
-    //    }
-    //    vector<SX> gsps;
-    //    for (int i = 0; i < gsp.size(); i++) {
-    //        gsps.push_back(gsp.at(i));
-    //    }
-    //
-    //    GSE = substitute(vector<SX>{GSE}, fin, xs)[0];
-    //    GSE = substitute(vector<SX>{GSE}, gsparams, gsps)[0];
-    //    simplify(GSE);
-    //
-    //    Efunc = SXFunction(nlpIn("x", x, "p", gsp), nlpOut("f", GSE));
-    //    Efunc.init();
-    //    Egradf = Efunc.gradient(NL_X, NL_F);
-    //    Egradf.init();
-
-    //    lopt = new opt(LD_LBFGS, 2 * L * dim);
-    //    lopt->set_lower_bounds(-1);
-    //    lopt->set_upper_bounds(1);
-    //    lopt->set_min_objective(energyfunc, this);
-    //
-    //    setInitial(f0_);
-    //    solve();
-    //
-    //        f0 = vector<vector<complex<double>>>(L, vector<complex<double>>(dim));
-    //        for (int i = 0; i < L; i++) {
-    //            for (int n = 0; n <= nmax; n++) {
-    //                f0[i][n] = complex<double>(x0[2 * (i * dim + n)], x0[2 * (i * dim + n) + 1]);
-    //            }
-    //            double nrm = sqrt(abs(dot(f0[i], f0[i])));
-    //            for (int n = 0; n <= nmax; n++) {
-    //                f0[i][n] /= nrm;
-    //            }
-    //        }
-    //        
-    //    SX HSr = Sdt;
-    //    SX HSi = -E;
-    //    HSr = substitute(vector<SX>{HSr}, fin, xs)[0];
-    //    HSr = substitute(vector<SX>{HSr}, params, ps)[0];
-    //    HSi = substitute(vector<SX>{HSi}, fin, xs)[0];
-    //    HSi = substitute(vector<SX>{HSi}, params, ps)[0];
-    //    simplify(HSr);
-    //    simplify(HSi);
-    //
-    //    SXFunction HSf = SXFunction(vector<SX>{x, p}, vector<SX>{HSr, HSi});
-    //    HSf.init();
-    //    Function HSrdff = HSf.gradient(0, 0);
-    //    Function HSidff = HSf.gradient(0, 1);
-    //    HSrdff.init();
-    //    HSidff.init();
-    //
-    //    SX HSrdftmp = HSrdff.call(vector<SX>{x, p})[0];
-    //    SX HSidftmp = HSidff.call(vector<SX>{x, p})[0];
-    //
-    //    ode = SX::sym("ode", 2 * L * dim);
-    //    for (int i = 0; i < L * dim; i++) {
-    //                ode[2 * i] = 0.5 * (HSrdftmp[2 * i] - HSidftmp[2 * i + 1]);
-    //                ode[2 * i + 1] = 0.5 * (HSidftmp[2 * i] + HSrdftmp[2 * i + 1]);
-    ////        ode[2 * i] = 0.5 * - HSidftmp[2 * i + 1];
-    ////        ode[2 * i + 1] = 0.5 * HSidftmp[2 * i];
-    //    }
-    //    ode_func = SXFunction(daeIn("x", x, "t", t, "p", p), daeOut("ode", ode));
-    //
-    //    Function g;
-    //    integrator = new CvodesInterface(ode_func, g);
-    //    integrator->setOption("max_num_steps", 1000000);
-    //    integrator->setOption("stop_at_end", false);
-    ////    integrator->setOption("linear_multistep_method", "adams");
-    ////        integrator->setOption("linear_solver", "csparse");
-    ////        integrator->setOption("linear_solver_type", "user_defined");
-    ////        integrator = new RkIntegrator(ode_func, g);
-    ////        integrator->setOption("number_of_finite_elements", 1000);
-    //    integrator->setOption("t0", 0);
-    ////    integrator->setOption("tf", 1);
-    //    integrator->init();
 }
 
-//DynamicsProblem::DynamicsProblem(double Wi, double Wf, double mu_, vector<double>& xi, vector<double>& f0_) : mu(mu_) {
-
-DynamicsProblem::DynamicsProblem(int thread_, double tauf) : thread(thread_) {
-
-    //    fin = SX::sym("f", 1, 1, 2 * L * dim);
-    //    dU = SX::sym("dU", 1, 1, L);
-    //    J = SX::sym("J", 1, 1, L);
-    //    U0 = SX::sym("U0");
-    //    t = SX::sym("t");
-    //
-    //    tau = SX::sym("tau");
-    //    Wt = if_else(t < tau, Wi + (Wf - Wi) * t / tau, Wf + (Wi - Wf) * (t - tau) / tau);
-    //
-    ////    mu = 0.5;
-    ////    SX Ut = 1;
-    ////    double Ji = 0.2;
-    ////    double Jf = 0.01;
-    ////    SX Jt = if_else(t < tau, Ji + (Jf - Ji) * t / tau, Jf + (Ji - Jf)*(t - tau) / tau);
-    ////    U0 = Ut;
-    //    U0 = scale*UW(Wt);
-    ////    U0 = scale*UW(Wi);
-    ////    U00 = 1;
-    //    U00 = scale*UW(Wi);
-    //    J0 = vector<double>(L);
-    //    for (int i = 0; i < L; i++) {
-    ////        J0[i] = Ji;
-    //        J0[i] = scale*JWij(Wi * xi[i], Wi * xi[mod(i + 1)]);
-    ////        J[i] = Jt;
-    //        J[i] = scale*JWij(Wt * xi[i], Wt * xi[mod(i + 1)]);
-    //        //        J[i] = scale*JWij(Wt, Wt);
-    //        //        Jp[i] = JWij(Wpt * xi[i], Wpt * xi[mod(i + 1)]);
-    ////        dU[i] = 0;
-    //        dU[i] = scale * UW(Wt * xi[i]) - U0;
-    //    }
-    //
-    //    vector<SX> params;
-    //    params.push_back(tau);
-    //
-    //    vector<SX> gsparams(params.begin(), params.end());
-    //    gsparams.push_back(t);
-    //    
-    //    SX E = energy();
-    //    SX S = canonical();
-    //
-    //    SXFunction Sf(vector<SX>{t}, vector<SX>{S});
-    //    Sf.init();
-    //    Function Sdtf = Sf.gradient(0, 0);
-    //    Sdtf.init();
-    //    SX Sdt = Sdtf.call(vector<SX>{t})[0];
-    //
-    //    SX GSE = E;
-    //
-    //    x = SX::sym("x", fin.size());
-    //    p = SX::sym("p", params.size());
-    //    gsp = SX::sym("gsp", gsparams.size());
-    //
-    //    vector<SX> xs;
-    //    for (int i = 0; i < x.size(); i++) {
-    //        xs.push_back(x.at(i));
-    //    }
-    //    vector<SX> ps;
-    //    for (int i = 0; i < p.size(); i++) {
-    //        ps.push_back(p.at(i));
-    //    }
-    //    vector<SX> gsps;
-    //    for (int i = 0; i < gsp.size(); i++) {
-    //        gsps.push_back(gsp.at(i));
-    //    }
-    //
-    //    GSE = substitute(vector<SX>{GSE}, fin, xs)[0];
-    //    GSE = substitute(vector<SX>{GSE}, gsparams, gsps)[0];
-    //    simplify(GSE);
-    //
-    //    Efunc = SXFunction(nlpIn("x", x, "p", gsp), nlpOut("f", GSE));
-    //    Efunc.init();
-    //    Egradf = Efunc.gradient(NL_X, NL_F);
-    //    Egradf.init();
-    //
-    //    lopt = new opt(LD_LBFGS, 2 * L * dim);
-    //    lopt->set_lower_bounds(-1);
-    //    lopt->set_upper_bounds(1);
-    //    lopt->set_min_objective(energyfunc, this);
-    //
-    //    setInitial(f0_);
-    //    solve();
-    //
-    //        f0 = vector<vector<complex<double>>>(L, vector<complex<double>>(dim));
-    //        for (int i = 0; i < L; i++) {
-    //            for (int n = 0; n <= nmax; n++) {
-    //                f0[i][n] = complex<double>(x0[2 * (i * dim + n)], x0[2 * (i * dim + n) + 1]);
-    //            }
-    //            double nrm = sqrt(abs(dot(f0[i], f0[i])));
-    //            for (int n = 0; n <= nmax; n++) {
-    //                f0[i][n] /= nrm;
-    //            }
-    //        }
-    //        
-    //    SX HSr = Sdt;
-    //    SX HSi = -E;
-    //    HSr = substitute(vector<SX>{HSr}, fin, xs)[0];
-    //    HSr = substitute(vector<SX>{HSr}, params, ps)[0];
-    //    HSi = substitute(vector<SX>{HSi}, fin, xs)[0];
-    //    HSi = substitute(vector<SX>{HSi}, params, ps)[0];
-    //    simplify(HSr);
-    //    simplify(HSi);
-    //
-    //    SXFunction HSf = SXFunction(vector<SX>{x, p}, vector<SX>{HSr, HSi});
-    //    HSf.init();
-    //    Function HSrdff = HSf.gradient(0, 0);
-    //    Function HSidff = HSf.gradient(0, 1);
-    //    HSrdff.init();
-    //    HSidff.init();
-    //
-    //    SX HSrdftmp = HSrdff.call(vector<SX>{x, p})[0];
-    //    SX HSidftmp = HSidff.call(vector<SX>{x, p})[0];
-    //
-    //    ode = SX::sym("ode", 2 * L * dim);
-    //    for (int i = 0; i < L * dim; i++) {
-    //                ode[2 * i] = 0.5 * (HSrdftmp[2 * i] - HSidftmp[2 * i + 1]);
-    //                ode[2 * i + 1] = 0.5 * (HSidftmp[2 * i] + HSrdftmp[2 * i + 1]);
-    ////        ode[2 * i] = 0.5 * - HSidftmp[2 * i + 1];
-    ////        ode[2 * i + 1] = 0.5 * HSidftmp[2 * i];
-    //    }
-    //    ode_func = SXFunction(daeIn("x", x, "t", t, "p", p), daeOut("ode", ode));
-
-    //        return;
+DynamicsProblem::DynamicsProblem(double tauf) {
 
     f0 = vector<vector<complex<double>>>(L, vector<complex<double>>(dim));
     for (int i = 0; i < L; i++) {
@@ -1043,8 +699,6 @@ DynamicsProblem::DynamicsProblem(int thread_, double tauf) : thread(thread_) {
         for (int n = 0; n <= nmax; n++) {
             int j = i * (nmax + 1) + n;
             loadFunction(odes[j], compiledir + "/ode." + to_string(i) + "." + to_string(n));
-            //        odes[j] = ExternalFunction(compiledir + "/ode." + to_string(i) + "." + to_string(n) + ".so");
-            //        odes[j].init();
         }
     }
 
@@ -1053,156 +707,39 @@ DynamicsProblem::DynamicsProblem(int thread_, double tauf) : thread(thread_) {
     ins.push_back(Sparsity::dense(0, 0));
     ins.push_back(Sparsity::dense(params.size()));
     ins.push_back(Sparsity::dense(1));
-    //    ins.push_back(Sparsity::dense(1));
 
     vector<Sparsity> outs;
     outs.push_back(Sparsity::dense(2 * L * dim));
     outs.push_back(Sparsity::dense(0, 0));
     outs.push_back(Sparsity::dense(0, 0));
-    //    outs.push_back(Sparsity::dense(1));
 
-//        SX x = SX::sym("x", 2*L*dim);
-//        SX p = SX::sym("p", params.size());
-//        SX t = SX::sym("t");
-//        SX out = SX::sym("ode", 2*L*dim);
-
-    //    odes = sodes;
-    sumdata* data = new sumdata;
-    data->odes = &odes;
-    /*Function*/ ode_func = CustomFunction(SumFunction, ins, outs); //, odes[0].getInputScheme(), odes[0].getOutputScheme());
+    ode_func = CustomFunction(SumFunction, ins, outs);
     ode_func.setOption("user_data", &odes);
-    ode_func.setOption("user_data", data);
-    //    ode_func.setInputScheme(IOScheme(SCHEME_DAEInput));
-    //    ode_func.setOutputScheme(IOScheme(SCHEME_DAEOutput));
-    ode_func.setNumInputs(DAE_NUM_IN); //odes[0].getNumInputs());
-    ode_func.setNumOutputs(DAE_NUM_OUT); //odes[0].getNumOutputs());
-    //    ode_func.setInputScheme(daeIn("x", x, "t", t, "p", p).scheme);
-    //    ode_func.setOutputScheme(daeOut("ode", out).scheme);
+    ode_func.setNumInputs(DAE_NUM_IN);
+    ode_func.setNumOutputs(DAE_NUM_OUT);
     ode_func.init();
 
-//    ode = sode;
-//               ode_func = SXFunction(daeIn("x", sx, "t", st, "p", sp), daeOut("ode", ode));
-    //    ode_func.getInput(0);
-    //    SX qwe = SX::sym("qwe", 2*L*dim);
-    //    SX sdf = SX::sym("sdf", 9);
-    ////    SX asd = 2*qwe;
-    //    SX asd = SX::sym("asd", 2*L*dim);
-    //    for (int i = 0; i < 2*L*dim; i++) {
-    //        asd[i] = 2*qwe[i];
-    //    }
-    //    SXFunction zxc = SXFunction(daeIn("x", qwe, "p", sdf), daeOut("ode", asd));
-    //    odes = vector<Function>{zxc};
-    //    qwef = ode_func;
-    //    ode_func = zxc;
-    //    zxc.getInput(0);
-    //    ode_func = SXFunction(daeIn("x", qwe, "p", sdf), daeOut("ode", asd));
-    //    ode_func.init();
-    //    ode_func.getInput(0);
-
-    //    ExternalFunction* ff = new ExternalFunction(compiledir+"/ode.0.0.so");
-    //    delete ff;
-    //        loadFunction(ff, compiledir + "/ode.0.0");
-    //        ff.getInput(0);
-
-    //    par = Parallelizer(odes);
-    //    par.init();
-    //    
-    //    ode_func = CustomFunction(SumFunction, ins, outs);
-    //    ode_func.setOption("user_data", &par);
-    //    ode_func.setNumInputs(odes[0].getNumInputs());
-    //    ode_func.setNumOutputs(odes[0].getNumOutputs());
-    //    ode_func.init();
-
-    //    DMatrix mat = ode_func.getInput(0);
-    //    cout << mat << endl;
-
-    //    ode_func = Function();
-    //    ode_func.setInputScheme(IOScheme(SCHEME_DAEInput));
-    //    ode_func.setOutputScheme(IOScheme(SCHEME_DAEOutput));
-
     Function g;
-//        integrator = new CvodesInterface(ode_func, g);
-//        integrator->setOption("max_num_steps", 1000000);
-//        integrator->setOption("stop_at_end", false);
-    ////    integrator->setOption("linear_multistep_method", "adams");
-    ////        integrator->setOption("linear_solver", "csparse");
-    ////        integrator->setOption("linear_solver_type", "user_defined");
-    //    if(thread == 0) {
     integrator = new RkIntegrator(ode_func, g);
-    integrator->setOption("number_of_finite_elements", 1000);//20000); //100000000);
-//    integrator = new CollocationIntegrator(ode_func, g);
+//    integrator->setOption("number_of_finite_elements", 1000);
+    integrator->setOption("number_of_finite_elements", ceil((2*tauf/scale)/dt));
     integrator->setOption("t0", 0);
-    integrator->setOption("tf", 2*tauf);
-    //    integrator->setOption("tf", 1);
+    integrator->setOption("tf", 2 * tauf / scale);
     integrator->init();
-    //    }
 }
 
 void DynamicsProblem::setTau(double tau_) {
-    //    params.clear();
-    //    params.push_back(tau_ / scale);
 
     params.back() = tau_ / scale;
 
-    //    gsparams = vector<double>(params.begin(), params.end());
-    //    gsparams.push_back(0);
-
     tf = 2 * tau_ / scale;
+    
+//    integrator->setOption("number_of_finite_elements", ceil(tf/dt));
+//    integrator->setOption("tf", tf);
+//    integrator->init();
 }
 
-//void DynamicsProblem::setInitial(vector<double>& f0) {
-//    x0.clear();
-//    for (double f0i : f0) x0.push_back(f0i);
-//    vector<complex<double>> fi(dim);
-//    for (int i = 0; i < L; i++) {
-//        for (int n = 0; n <= nmax; n++) {
-//            fi[n] = complex<double>(x0[2 * (i * dim + n)], x0[2 * (i * dim + n) + 1]);
-//        }
-//        double nrm = sqrt(abs(dot(fi, fi)));
-//        for (int n = 0; n <= nmax; n++) {
-//            x0[2 * (i * dim + n)] /= nrm;
-//            x0[2 * (i * dim + n) + 1] /= nrm;
-//        }
-//    }
-//}
-
-//void DynamicsProblem::solve() {
-//    double E0;
-//    //    try {
-//    start_time = microsec_clock::local_time();
-//    enum result res = lopt->optimize(x0, E0);
-//    stop_time = microsec_clock::local_time();
-//    gsresult = to_string(res);
-//    //    }
-//    //    catch (std::exception& e) {
-//    //        stop_time = microsec_clock::local_time();
-//    //        enum result res = lopt->last_optimize_result();
-//    //        gsresult = to_string(res) + ": " + e.what();
-//    //        cerr << e.what() << endl;
-//    //    }
-//
-//    vector<complex<double>> fi(dim);
-//    for (int i = 0; i < L; i++) {
-//        for (int n = 0; n <= nmax; n++) {
-//            fi[n] = complex<double>(x0[2 * (i * dim + n)], x0[2 * (i * dim + n) + 1]);
-//        }
-//        double nrm = sqrt(abs(dot(fi, fi)));
-//        for (int n = 0; n <= nmax; n++) {
-//            x0[2 * (i * dim + n)] /= nrm;
-//            x0[2 * (i * dim + n) + 1] /= nrm;
-//        }
-//    }
-////    cout << setprecision(10) << E0 << endl;
-////        cout << setprecision(10) << x0 << endl;
-////        exit(0);
-//
-//    time_period period(start_time, stop_time);
-//    gsruntime = to_simple_string(period.length());
-//}
-
 void DynamicsProblem::evolve() {
-    //    if (thread > 0) return;
-    //    ode_func.getInput(0);
     start_time = microsec_clock::local_time();
     ptime eval_start_time = microsec_clock::local_time();
 
@@ -1210,44 +747,17 @@ void DynamicsProblem::evolve() {
     integrator->setInput(params, INTEGRATOR_P);
 
     integrator->reset();
-    {
-        //        boost::mutex::scoped_lock lock(sum_mutex);
-        //        ode_func.input(DAE_T).set(double(0));
-        //      ode_func.input(DAE_X).set(x0);
-        //      F.input(DAE_Z).set(Z_);
-        //      ode_func.input(DAE_P).set(params);
-        //      ode_func.evaluate();
-        //      ode_func.output(DAE_ODE).get(x0);
-        //      F.output(DAE_ALG).get(Z_);
-        integrator->integrate(tf);
-    }
+    integrator->integrate(tf);
 
-    //    DMatrix xfm3(integrator->output(INTEGRATOR_XF));
-    DMatrix xfm = integrator->output(INTEGRATOR_XF);
+    //    DMatrix xfm = integrator->output(INTEGRATOR_XF);
     //    vector<double> qwe(2*L*dim);
     //    integrator->output(INTEGRATOR_XF).get(qwe);
-    {
-        //        boost::mutex::scoped_lock lock(sum_mutex);
-        //   xfm = integrator->output(INTEGRATOR_XF);
-    }
-    //    return;
-    vector<double> xf;
-    for (int i = 0; i < 2 * L * dim; i++) {
-        xf.push_back(xfm[i].getValue());
-    }
+    vector<double> xf(2 * L * dim);
+    integrator->output(INTEGRATOR_XF).get(xf);
+    //    for (int i = 0; i < 2 * L * dim; i++) {
+    //        xf.push_back(xfm[i].getValue());
+    //    }
 
-    //        vector<vector<complex<double>>> f0(L, vector<complex<double>>(dim));
-    //        for (int i = 0; i < L; i++) {
-    //            for (int n = 0; n <= nmax; n++) {
-    //                f0[i][n] = complex<double>(x0[2 * (i * dim + n)], x0[2 * (i * dim + n) + 1]);
-    //            }
-    //            double nrm = sqrt(abs(dot(f0[i], f0[i])));
-    //            for (int n = 0; n <= nmax; n++) {
-    //                f0[i][n] /= nrm;
-    //            }
-    //        }
-
-    //        vector<vector<complex<double>>> ff(L, vector<complex<double>>(dim));
     ff = vector<vector<complex<double>>>(L, vector<complex<double>>(dim));
     for (int i = 0; i < L; i++) {
         for (int n = 0; n <= nmax; n++) {
@@ -1265,17 +775,6 @@ void DynamicsProblem::evolve() {
         b0[i] = b(f0, i, J0, U00);
         bf[i] = b(ff, i, J0, U00);
     }
-    //        vector<complex<double>> bc0(L), bcf(L);
-    //        for (int i = 0; i < L; i++) {
-    //            bc0[i] = b(f0, i, J0, U00);
-    //            bcf[i] = b(ff, i, J0, U00);
-    //        }
-    //        b0 = vector<double>(L);
-    //        bf = vector<double>(L);
-    //        for (int i = 0; i < L; i++) {
-    //            b0[i] = abs(bc0[i]);
-    //            bf[i] = abs(bcf[i]);
-    //        }
 
     vector<double> grad;
     E0 = E(x0, grad);
@@ -1301,10 +800,6 @@ void DynamicsProblem::evolve() {
 }
 
 double DynamicsProblem::E(const vector<double>& f, vector<double>& grad) {
-    //    vector<double> params(2);
-    //    params[0] = 1;
-    //    params[1] = 0;
-    //    double E = 0;
     double E = 0;
     for (int i = 0; i < Efunc.size(); i++) {
         double Ei = 0;
@@ -1328,24 +823,7 @@ double DynamicsProblem::E(const vector<double>& f, vector<double>& grad) {
         }
     }
     return E;
-    //    Efunc.setInput(f.data(), NL_X);
-    //    Efunc.setInput(params.data(), NL_P);
-    //    Efunc.evaluate();
-    //    Efunc.getOutput(E, NL_F);
-    //    if (!grad.empty()) {
-    //        Egradf.setInput(f.data(), NL_X);
-    //        Egradf.setInput(params.data(), NL_P);
-    //        Egradf.evaluate();
-    //        Egradf.output().getArray(grad.data(), grad.size(), DENSE);
-    //    }
-    //    return E;
 }
-
-//double DynamicsProblem::E(const vector<double>& f, double t) {
-//    gsparams.back() = t;
-//    vector<double> g;
-//    return E(f, g);
-//}
 
 SX DynamicsProblem::energync(vector<SX>& fin, vector<SX>& J, SX& U0, vector<SX>& dU, SX& mu) {
 
@@ -1504,7 +982,7 @@ SX DynamicsProblem::energy(vector<SX>& fin, vector<SX>& J, SX& U0, vector<SX>& d
     SX E = 0;
     for (int i = 0; i < L; i++) {
         for (int n = 0; n <= nmax; n++) {
-        E += energy(i, n, fin, J, U0, dU, mu);
+            E += energy(i, n, fin, J, U0, dU, mu);
         }
     }
     return E;
@@ -1847,7 +1325,7 @@ SX DynamicsProblem::canonical(vector<SX>& fin, vector<SX>& J, SX& U0, vector<SX>
     SX S = 0;
     for (int i = 0; i < L; i++) {
         for (int n = 0; n <= nmax; n++) {
-        S += canonical(i, n, fin, J, U0, dU, mu);
+            S += canonical(i, n, fin, J, U0, dU, mu);
         }
     }
     return S;

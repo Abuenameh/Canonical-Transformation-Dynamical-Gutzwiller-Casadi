@@ -30,45 +30,77 @@ using namespace nlopt;
 
 class DynamicsProblem {
 public:
-//    DynamicsProblem(double Wi, double Wf, double mu_, vector<double>& xi, vector<double>& f0);
-    DynamicsProblem(int thread_, double tauf);
-        ~DynamicsProblem() { /*delete lopt;*/ delete integrator; }
+    DynamicsProblem(double tauf);
 
-        void setTau(double tau_);
-//    void setParameters(double Wi, double Wf, double tau, vector<double>& xi, double mu);
+    ~DynamicsProblem() {
+        delete integrator;
+    }
 
-        static void setup(double Wi_, double Wf_, double mu_, vector<double>& xi_, vector<double>& f0_);
-        
+    void setTau(double tau_);
+
+    static void setup(double Wi_, double Wf_, double mu_, vector<double>& xi_, vector<double>& f0_, double dt_);
+
     static double E(const vector<double>& f, vector<double>& grad);
-    double E(const vector<double>& f, double t);
 
     void evolve();
 
-    vector<double> getGS() { return x0; };
-    string& getGSRuntime() { return gsruntime; }
-    string& getRuntime() { return runtime; }
+    vector<double> getGS() {
+        return x0;
+    };
+
+    string& getGSRuntime() {
+        return gsruntime;
+    }
+
+    string& getRuntime() {
+        return runtime;
+    }
 
     string& getGSResult() {
         return gsresult;
     }
-//    string& getResult() {
-//        return result;
-//    }
-    
-    double getQ() { return Q; }
-    double getRho() { return pd; }
-//    vector<vector<double>> getBs() { return bv; }
-    vector<complex<double>> getB0() { return b0; }
-    vector<complex<double>> getBf() { return bf; }
-    double getEi() { return E0; }
-    double getEf() { return Ef; }
-    double getU0() { return U00; }
-    vector<double> getJ0() { return J0; }
-    vector<vector<complex<double>>> getF0() { return f0; }
-    vector<vector<complex<double>>> getFf() { return ff; }
-    
-    void start() 
-    {
+
+    double getQ() {
+        return Q;
+    }
+
+    double getRho() {
+        return pd;
+    }
+
+    vector<complex<double>> getB0() {
+        return b0;
+    }
+
+    vector<complex<double>> getBf() {
+        return bf;
+    }
+
+    double getEi() {
+        return E0;
+    }
+
+    double getEf() {
+        return Ef;
+    }
+
+    double getU0() {
+        return U00;
+    }
+
+    vector<double> getJ0() {
+        return J0;
+    }
+
+    vector<vector<complex<double>>> getF0() {
+        return f0;
+    }
+
+    vector<vector<complex<double>>> getFf() {
+        return ff;
+    }
+
+    void start() {
         start_time = microsec_clock::local_time();
     }
 
@@ -80,11 +112,8 @@ private:
 
     ptime start_time;
     ptime stop_time;
-    
-    static double scale;
 
-//    void setInitial(vector<double>& f0);
-//    void solve();
+    static double scale;
 
     complex<SX> HS();
     SX W();
@@ -97,77 +126,44 @@ private:
     static SX canonical(int i, int n, vector<SX>& fin, vector<SX>& J, SX& U0, vector<SX>& dU, SX& mu);
     SX canonicala(vector<SX>& fin, vector<SX>& J, SX& U0, vector<SX>& dU, SX& mu);
 
-//    vector<SX> fin;
-//    SX U0;
-//    vector<SX> dU;
-//    vector<SX> J;
-//    double mu;
-//    SX tau;
-
-//    SX Wt;
-
-//    SX t;
-//    SX x;
-//    SX p;
-//    SX gsp;
-    
-    static SX st;
-    static SX sx;
-    static SX sp;
-
     double tf;
+    
+    static double dt;
 
     static vector<double> xi;
     static double U00;
     static vector<double> J0;
-    
-//    opt* lopt;
 
-    static vector<Function> sodes;
     vector<Function> odes;
-    
-    static SX sode;
-    SX ode;
-    SXFunction ode_func;
-//    CvodesInterface* integrator;
-    RkIntegrator* integrator;
 
-    vector<double> params;
-    vector<double> gsparams;
-    vector<double> x0;
-    
-    int thread;
-    
-//    CvodesInterface* integrator;
+    Function ode_func;
+    //    CvodesInterface* integrator;
     RkIntegrator* integrator;
-//    CollocationIntegrator* integrator;
 
     static vector<double> sparams;
     static vector<double> gsparams;
     static vector<double> x0;
-    
+
     vector<double> params;
-    
+
     static vector<Function> Efunc;
     static vector<Function> Egradf;
 
     string gsruntime;
     string gsresult;
-    
+
     string runtime;
-//    string result;
-    
+
     double E0;
     double Ef;
     double Q;
     double pd;
-//    vector<vector<double>> bv;
     vector<complex<double>> b0;
     vector<complex<double>> bf;
-    
+
     vector<vector<complex<double>>> f0;
     vector<vector<complex<double>>> ff;
-    
+
 };
 
 double energyfunc(const vector<double>& x, vector<double>& grad, void *data);

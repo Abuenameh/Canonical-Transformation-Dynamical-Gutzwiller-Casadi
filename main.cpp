@@ -78,13 +78,11 @@ void threadfunc(double Wi, double Wf, double mu, vector<double> xi, double tauf,
 //
 //        prob = new DynamicsProblem(Wi, Wf, mu, xi, f0);
         
-        prob = new DynamicsProblem(thread, tauf);
+        prob = new DynamicsProblem(tauf);
     }
     
     bar.wait();
 
-//    if (thread < 2)
-//    if (false)
     for (;;) {
         input in;
         {
@@ -117,10 +115,7 @@ void threadfunc(double Wi, double Wf, double mu, vector<double> xi, double tauf,
         try {
             //        prob->solve();
             prob->setTau(tau);
-            {
-//                boost::mutex::scoped_lock lock(problem_mutex);
             prob->evolve();
-            }
             pointRes.Ei = prob->getEi();
             pointRes.Ef = prob->getEf();
             pointRes.Q = prob->getQ();
@@ -206,24 +201,24 @@ int main(int argc, char** argv) {
     //    double tf = 2*tau;
     //    int nsteps = lexical_cast<int>(argv[9]);
 
-    //    double dt = lexical_cast<double>(argv[7]);
+        double dt = lexical_cast<double>(argv[9]);
     //    int dnsav = lexical_cast<int>(argv[8]);
 
     //    int nsteps = (int) ceil(2 * tau / dt);
     //    double h = 2 * tau / nsteps;
 
 
-    int numthreads = lexical_cast<int>(argv[9]);
+    int numthreads = lexical_cast<int>(argv[10]);
 
-    int resi = lexical_cast<int>(argv[10]);
+    int resi = lexical_cast<int>(argv[11]);
     //    int resi = 0;
     //    if (argc > 9) {
     //        resi = lexical_cast<int>(argv[9]);
     //    }
 
     int subresi = -1;
-    if (argc > 11) {
-        subresi = lexical_cast<int>(argv[11]);
+    if (argc > 12) {
+        subresi = lexical_cast<int>(argv[12]);
     }
 
 #ifdef AMAZON
@@ -323,7 +318,7 @@ int main(int argc, char** argv) {
             f0[i] = uni(rng);
         }
 
-    DynamicsProblem::setup(Wi, Wf, mui, xi, f0);
+    DynamicsProblem::setup(Wi, Wf, mui, xi, f0, dt);
     
     barrier bar(numthreads);
     
