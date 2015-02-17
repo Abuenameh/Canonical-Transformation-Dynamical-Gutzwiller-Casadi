@@ -273,8 +273,8 @@ int main(int argc, char** argv) {
     double mui = mu * Ui;
 
     filesystem::ofstream os(resfile);
-    //    printMath(os, "seed", resi, seed);
-    //    printMath(os, "Delta", resi, D);
+        printMath(os, "seed", resi, seed);
+        printMath(os, "Delta", resi, D);
     //    printMath(os, "Wres", resi, Wi);
     printMath(os, "mures", resi, mui);
     printMath(os, "Ures", resi, Ui);
