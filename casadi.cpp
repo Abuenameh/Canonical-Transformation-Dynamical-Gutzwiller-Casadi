@@ -726,10 +726,10 @@ DynamicsProblem::DynamicsProblem(double tauf) {
     Function g;
     integrator = new RkIntegrator(ode_func, g);
 //    integrator->setOption("number_of_finite_elements", 1000);
-//    integrator->setOption("number_of_finite_elements", ceil((2*tauf/scale)/dt));
+    integrator->setOption("number_of_finite_elements", ceil((2*tauf/scale)/dt));
     integrator->setOption("t0", 0);
-//    integrator->setOption("tf", 2 * tauf / scale);
-//    integrator->init();
+    integrator->setOption("tf", 2 * tauf / scale);
+    integrator->init();
 }
 
 void DynamicsProblem::setTau(double tau_) {
@@ -738,9 +738,9 @@ void DynamicsProblem::setTau(double tau_) {
 
     tf = 2 * tau_ / scale;
     
-    integrator->setOption("number_of_finite_elements", ceil(tf/dt));
-    integrator->setOption("tf", tf);
-    integrator->init();
+//    integrator->setOption("number_of_finite_elements", ceil(tf/dt));
+//    integrator->setOption("tf", tf);
+//    integrator->init();
 }
 
 void DynamicsProblem::evolve() {
