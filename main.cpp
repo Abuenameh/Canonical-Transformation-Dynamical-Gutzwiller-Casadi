@@ -281,6 +281,7 @@ int main(int argc, char** argv) {
     printMath(os, "xires", resi, xi);
     os << flush;
 
+    printMath(os, "dtres", resi, dt);
     //    printMath(os, "tauires", resi, taui);
     //    printMath(os, "taufres", resi, tauf);
     //    printMath(os, "ntausres", resi, ntaus);
