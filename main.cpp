@@ -217,8 +217,10 @@ int main(int argc, char** argv) {
     //    }
 
     int subresi = -1;
+    int seed2 = 0;
     if (argc > 12) {
-        subresi = lexical_cast<int>(argv[12]);
+//        subresi = lexical_cast<int>(argv[12]);
+        seed2 = lexical_cast<int>(argv[12]);
     }
 
 #ifdef AMAZON
@@ -314,12 +316,13 @@ int main(int argc, char** argv) {
     vector<results> res;
 
         vector<double> f0(2 * L*dim, 1);
-        rng.seed();
+        rng.seed(seed2);
         for (int i = 0; i < 2 * L * dim; i++) {
             f0[i] = uni(rng);
         }
 
     DynamicsProblem::setup(Wi, Wf, mui, xi, f0, dt);
+    return 0;
     
     barrier bar(numthreads);
     

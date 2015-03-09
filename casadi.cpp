@@ -672,6 +672,8 @@ void DynamicsProblem::setup(double Wi_, double Wf_, double mu_, vector<double>& 
     //            gsresult = to_string(res) + ": " + e.what();
     //            cerr << e.what() << endl;
     //        }
+    
+    cout << setprecision(10) << E0/U00 << endl;
 
     for (int i = 0; i < L; i++) {
         for (int n = 0; n <= nmax; n++) {
