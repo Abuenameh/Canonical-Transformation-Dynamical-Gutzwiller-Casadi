@@ -290,8 +290,8 @@ int main(int argc, char** argv) {
 
     os << flush;
 
-    //    printMath(os, "Wires", resi, Wi);
-    //    printMath(os, "Wfres", resi, Wf);
+        printMath(os, "Wires", resi, Wi);
+        printMath(os, "Wfres", resi, Wf);
     os << flush;
 
     cout << "Res: " << resi << endl;
@@ -322,6 +322,7 @@ int main(int argc, char** argv) {
         }
 
     DynamicsProblem::setup(Wi, Wf, mui, xi, f0, dt);
+//    return 0;
     
     barrier bar(numthreads);
     
