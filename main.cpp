@@ -322,6 +322,7 @@ int main(int argc, char** argv) {
         }
 
     DynamicsProblem::setup(Wi, Wf, mui, xi, f0, dt);
+//    return 0;
     
     barrier bar(numthreads);
     
