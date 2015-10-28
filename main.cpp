@@ -225,9 +225,9 @@ int main(int argc, char** argv) {
 
 #ifdef AMAZON
     //    path resdir("/home/ubuntu/Results/Canonical Transformation Dynamical Gutzwiller");
-    path resdir("/home/ubuntu/Dropbox/Amazon EC2/Simulation Results/Canonical Transformation Dynamical Gutzwiller");
+    path resdir("/home/ubuntu/Dropbox/Amazon EC2/Simulation Results/Canonical Transformation Dynamical Gutzwiller 2");
 #else
-    path resdir("/Users/Abuenameh/Documents/Simulation Results/Canonical Transformation Dynamical Gutzwiller");
+    path resdir("/Users/Abuenameh/Documents/Simulation Results/Canonical Transformation Dynamical Gutzwiller 2");
     //        path resdir("/Users/Abuenameh/Documents/Simulation Results/Dynamical Gutzwiller Hartmann Comparison");
 #endif
     if (!exists(resdir)) {
@@ -290,8 +290,8 @@ int main(int argc, char** argv) {
 
     os << flush;
 
-        printMath(os, "Wires", resi, Wi);
-        printMath(os, "Wfres", resi, Wf);
+//        printMath(os, "Wires", resi, Wi);
+//        printMath(os, "Wfres", resi, Wf);
     os << flush;
 
     cout << "Res: " << resi << endl;
@@ -370,8 +370,8 @@ int main(int argc, char** argv) {
     printMath(os, "J0res", resi, subresi, J0res);
     printMath(os, "b0res", resi, subresi, b0res);
     printMath(os, "bfres", resi, subresi, bfres);
-    printMath(os, "f0res", resi, subresi, f0res);
-    printMath(os, "ffres", resi, subresi, ffres);
+//    printMath(os, "f0res", resi, subresi, f0res);
+//    printMath(os, "ffres", resi, subresi, ffres);
     //    printMath(os, "bsres", resi, bsres);
     printMath(os, "runtime", resi, subresi, runtimeres);
 
